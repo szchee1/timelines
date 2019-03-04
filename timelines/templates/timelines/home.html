@@ -1,0 +1,4740 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+
+    <title>CRM Timelines</title>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+    <!-- <link href="https://code.jquery.com/ui/1.11.0/themes/smoothness/jquery-ui.css" rel="stylesheet" type="text/css" /> -->
+
+    <!-- <script type="text/javascript">
+      var verticals = $.parseJSON('{{ verticals|safe }}');
+      var types = $.parseJSON('{{ types|safe }}');
+      var complexities = $.parseJSON('{{ complexities|safe }}');
+      var progress_list = $.parseJSON('{{ progress|safe }}');
+      var countries = $.parseJSON('{{ countries|safe }}');
+      var teams = $.parseJSON('{{ teams|safe }}');
+      var owners = $.parseJSON('{{ owners|safe }}');
+    </script> -->
+
+    <script>
+
+      $(document).ready(function() {
+
+        // var previous = document.referrer;
+        // console.log(location.hash);
+        // console.log(location.host);
+        // console.log(location.hostname);
+        // console.log(location.href);
+        // console.log(location.origin);
+        // console.log(location.pathname);
+        // console.log(location.port);
+        // console.log(location.protocol);
+
+
+        // if (location.hash=="#saveTask") {
+        //   $(this).find(".campaign-container").find(".campaign-gantt").trigger('click');
+        // };
+
+        /* CHANGE */
+        // Only allow progress and other fields, EXCEPT dates to be edited, when a dependency is being eidted.
+
+    /* FX */
+
+      $(".bar").on("mouseenter mouseleave", function(){
+        var week_start = $(this).attr("data-week-start");
+        var week_end = $(this).attr("data-week-end") - 1;
+
+        $('.week-day[value="' + week_start + '"], .week-day[value="' + week_end + '"]').each(function(){
+          $(this).toggleClass("pill-hover");
+        });
+
+      });
+
+      /* Toggle Menu Bar */
+      $(".custom-menu-bar").on("click", function(){
+        // $(this).closest(".nav").find(".custom-menu").removeClass("hide");
+        $(this).closest(".nav").find(".custom-menu").toggle(100, function(){
+          $(this).removeClass("hide");
+        })
+      });
+
+      // $(".custom-menu-bar").on("mouseleave", function(){
+      //   $(this).closest(".nav").find(".custom-menu").addClass("hide");
+      //   // $(this).closest(".nav").find(".custom-menu").toggle(100, function(){
+      //   //   $(this).removeClass("hide");
+      //   // });
+      // });
+
+      $(".menu-select").on("click", function(){
+        $(this).closest(".custom-menu").hide();
+      });
+
+      // $(".campaign-gantt").on("click", function(){
+      //
+      //     var path = location.pathname.split("/");
+      //     console.log(path);
+      //     var pathLast = path.pop();
+      //     console.log(pathLast)
+      //     var pathFinal = path.join("/");
+      //     console.log(pathFinal);
+      //
+      //   window.location.href = pathFinal; // '/timelines';
+      //   return false;
+      // });
+
+      /* Toggle Task View */
+
+      $(".campaign-gantt").on("click", function(){
+        var campaignId = $(this).closest(".campaign-container").attr("id");
+
+        var typePath = location.pathname
+        // alert(typePath);
+
+        if ( typePath ==  '/timelines/' ) {
+          window.location.href = typePath + campaignId;
+        } else {
+          window.location.href = typePath + "/" + campaignId;
+        }
+
+        return false;
+      });
+
+      /* Toggle Task Version View */
+      $(".task-version-count").on("click", function(){
+        $(this).closest(".task").nextUntil(".task").each(function(){
+          $(this).toggle(100, function(){
+            $(this).removeClass("hide");
+          });
+        });
+      });
+
+      $(".view-task-comment").on("click", function(){
+        $(".task-info-comments").hide();
+        $(this).closest(".task").find(".task-info-comments").show();
+      });
+
+      $(".close-task-comment").on("click", function(){
+        $(this).closest(".task").find(".task-info-comments").hide();
+      });
+
+      // $(".view-task-comment").on("mouseenter mouseleave", function(){
+      //   $(this).closest(".task-details").find(".task-info-comments").toggleClass("hide");
+      // });
+
+      /* Tooltip speed */
+      // $( function() {
+      //   $( document ).tooltip();
+      // });
+
+      // $("i").tooltip({
+      //   show: {
+      //     effect:"none", delay:0
+      //   }
+      // });
+
+
+
+      /* Edit week capacity */
+      $(".week-edit").on("click", function(){
+        var el = $(this).closest(".week-day");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-week" %}',
+          data: {
+            weekid: el.attr("id"),
+            type: 'week',
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var weekData = el.find(".week-data");
+        var weekNo = weekData.attr("data-no");
+        var weekStart = weekData.attr("data-start");
+        var weekId = weekData.attr("data-id");
+        var weekCommenter = weekData.attr("data-commenter");
+        var weekComment = weekData.attr("data-comment");
+        var weekOps = weekData.attr("data-ops");
+        var weekAgency = weekData.attr("data-agency");
+        var weekAnalytics = weekData.attr("data-analytics");
+
+        var weekForm = $(".week-form-container");
+        weekForm.attr("value", weekId);
+        weekForm.find(".week-form-no").val("Week " + weekNo + ": " + weekStart);
+        weekForm.find(".week-form-ops-hours").val(weekOps);
+        weekForm.find(".week-form-agency-hours").val(weekAgency);
+        weekForm.find(".week-form-analytics-hours").val(weekAnalytics);
+        weekForm.find(".week-comment").val(weekComment);
+        weekForm.find(".comment-details").text(weekCommenter + ", " + weekStart);
+
+        console.log(weekComment);
+        weekForm.removeClass("hide");
+
+      });
+
+
+
+      /* Edit Campaign Info */
+      $(".edit-campaign-info").on("click", function(){
+
+        var el = $(this).closest(".campaign-container");
+        var campaignId = el.attr("id");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-campaign-info" %}',
+          data: {
+            campaignid: campaignId,
+            type: 'campaign-info',
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var campaignData = el.find(".campaign-info-data");
+        var campaignPhase = campaignData.attr("data-phase");
+        var campaignComplexity = campaignData.attr("data-complexity");
+        var campaignComplexityId = campaignData.attr("data-complexity-id");
+
+        var campaignLcmOwner = campaignData.attr("data-lcm-owner");
+        var campaignLcmOwnerId = campaignData.attr("data-lcm-owner-id");
+        var campaignOpsOwner = campaignData.attr("data-ops-owner");
+        var campaignOpsOwnerId = campaignData.attr("data-ops-owner-id");
+        var campaignAnalyticsOwner = campaignData.attr("data-analytics-owner");
+        var campaignAnalyticsOwnerId = campaignData.attr("data-analytics-owner-id");
+
+        var campaignPlatform = campaignData.attr("data-platform");
+        var platformArray = campaignPlatform.split(", ");
+        console.log(platformArray);
+
+
+        var campaignForm = $(".campaign-info-form-container");
+
+        campaignForm.attr("value", campaignId);
+        campaignForm.find(".campaign-form-phase").val(campaignPhase);
+        campaignForm.find(".campaign-form-complexity").text(campaignComplexity);
+        campaignForm.find(".campaign-form-complexity").attr("value", campaignComplexityId);
+
+        campaignForm.find(".campaign-form-lcm-owner").text(campaignLcmOwner);
+        campaignForm.find(".campaign-form-lcm-owner").attr("value", campaignLcmOwnerId);
+        campaignForm.find(".campaign-form-ops-owner").text(campaignOpsOwner);
+        campaignForm.find(".campaign-form-ops-owner").attr("value", campaignOpsOwnerId);
+        campaignForm.find(".campaign-form-analytics-owner").text(campaignAnalyticsOwner);
+        campaignForm.find(".campaign-form-analytics-owner").attr("value", campaignAnalyticsOwnerId);
+
+        campaignForm.find(".campaign-form-platform").each(function(){
+          if ( jQuery.inArray($(this).attr("value"), platformArray) !== -1 ) {
+            $(this).addClass("custom-checked");
+          }
+        });
+
+        campaignForm.removeClass("hide");
+
+      });
+
+
+      /* Edit Campaign Capacity */
+      $(".edit-campaign-capacity").on("click", function(){
+
+        var el = $(this).closest(".campaign-container");
+        var campaignId = el.attr("id");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-campaign" %}', /* same lock as campaign; as RUs need to be re-calculated */
+          data: {
+            campaignid: campaignId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var campaignData = el.find(".campaign-capacity-data");
+
+        var campaignOpsHours = campaignData.attr("data-ops-hours");
+        var campaignAgencyHours = campaignData.attr("data-agency-hours");
+        var campaignAnalyticsHours = campaignData.attr("data-analytics-hours");
+
+        var campaignForm = $(".campaign-capacity-form-container");
+
+        campaignForm.attr("value", campaignId);
+        campaignForm.find(".campaign-form-ops-hours").val(campaignOpsHours);
+        campaignForm.find(".campaign-form-agency-hours").val(campaignAgencyHours);
+        campaignForm.find(".campaign-form-analytics-hours").val(campaignAnalyticsHours);
+
+        campaignForm.removeClass("hide");
+
+      });
+
+
+      /* Edit Campaign Quantifiers */
+      $(".edit-campaign-quantifiers").on("click", function(){
+
+        var el = $(this).closest(".campaign-container");
+        var campaignId = el.attr("id");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-campaign-info" %}',
+          data: {
+            campaignid: campaignId,
+            type: 'campaign-quantifiers',
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var campaignData = el.find(".campaign-quantifiers-data");
+
+        var campaignChannels = campaignData.attr("data-no-channels");
+        var campaignComms = campaignData.attr("data-no-comms");
+        // var campaignCountries = campaignData.attr("data-no-countries");
+        var campaignLanguages = campaignData.attr("data-no-languages");
+        var campaignDynamicFields = campaignData.attr("data-no-dynamics-fields");
+        var campaignQueryAttr = campaignData.attr("data-no-query-attr");
+
+        var campaignForm = $(".campaign-quantifiers-form-container");
+
+        campaignForm.attr("value", campaignId);
+        campaignForm.find(".campaign-form-no-channels").val(campaignChannels);
+        campaignForm.find(".campaign-form-no-comms").val(campaignComms);
+        campaignForm.find(".campaign-form-no-languages").val(campaignLanguages);
+        campaignForm.find(".campaign-form-no-dynamic").val(campaignDynamicFields);
+        campaignForm.find(".campaign-form-no-quer-attr").val(campaignQueryAttr);
+
+        campaignForm.removeClass("hide");
+
+      });
+
+
+      /* Edit Campaign */
+      $(".edit-campaign").on("click", function(){
+
+        var el = $(this).closest(".campaign-container");
+        var campaignId = el.attr('id');
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-campaign" %}',
+          data: {
+            campaignid: campaignId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+
+        var campaignData = el.find(".campaign-data");
+        var campaignName = campaignData.attr("data-name");
+        var campaignVertical = campaignData.attr("data-vertical");
+        var campaignVerticalId = campaignData.attr("data-vertical-id");
+        var campaignType = campaignData.attr("data-type");
+        var campaignTypeId = campaignData.attr("data-type-id");
+        var campaignProgress = campaignData.attr("data-progress");
+        var campaignProgressId = campaignData.attr("data-progress-id");
+        var campaignStart = campaignData.attr("data-start");
+        var campaignEnd = campaignData.attr("data-end");
+        var campaignCountries = campaignData.attr("data-countries");
+
+        var countryArray = campaignCountries.split(", ");
+        console.log(countryArray);
+
+        var campaignForm = $(".campaign-form-container");
+
+        campaignForm.attr("value", campaignId);
+        campaignForm.find(".campaign-form-name").val(campaignName);
+        campaignForm.find(".campaign-form-vertical").text(campaignVertical);
+        campaignForm.find(".campaign-form-vertical").attr("value", campaignVerticalId);
+        campaignForm.find(".campaign-form-type").text(campaignType);
+        campaignForm.find(".campaign-form-type").attr("value", campaignTypeId);
+        campaignForm.find(".campaign-form-progress").text(campaignProgress);
+        campaignForm.find(".campaign-form-progress").attr("value", campaignProgressId);
+        campaignForm.find(".campaign-form-start").val(campaignStart);
+        campaignForm.find(".campaign-form-end").val(campaignEnd);
+
+        campaignForm.find(".campaign-form-countries").each(function(){
+          if ( jQuery.inArray($(this).attr("value"), countryArray) !== -1 ) {
+            $(this).addClass("custom-checked");
+          }
+        });
+
+        campaignForm.removeClass("hide");
+
+      });
+
+
+  /* Save */
+
+  /* Save week */
+
+  $(".week-save").on("click", function(){
+
+    var weekForm = $(".week-form-container");
+
+    $.ajax({
+      type: 'POST',
+      url: '{% url "save-week" %}',
+      data: {
+        weekid: weekForm.attr("value"),
+        ops_capacity: weekForm.find(".week-form-ops-hours").val(),
+        agency_capacity: weekForm.find(".week-form-agency-hours").val(),
+        analytics_capacity: weekForm.find(".week-form-analytics-hours").val(),
+        comment: weekForm.find(".week-comment").val(),
+
+        csrfmiddlewaretoken: "{{ csrf_token }}"
+      },
+
+      success: function(res){
+        alert(res);
+        location.reload();
+      },
+
+      error: function(res){
+        alert("Please ensure all fields are populated correctly.");
+      }
+    });
+  });
+
+/* Campaign Dates Dropdown */
+
+  $(".date-dropdown").on("click", function(){
+    if ( $(this).attr("value") == 'start' ) {
+      $(".campaign-form-start").closest(".input").show();
+      $(".campaign-form-end").closest(".input").hide();
+    } else {
+      $(".campaign-form-end").closest(".input").show();
+      $(".campaign-form-start").closest(".input").hide();
+    }
+  });
+
+  /* Save Campaign */
+
+  $(".campaign-save").on("click", function(){
+
+    var campaignForm = $(".campaign-form-container");
+
+    var changeDate = campaignForm.find(".campaign-form-date-type").attr("value");
+
+    if ( changeDate == 'start' ) {
+      var date = campaignForm.find(".campaign-form-start").val();
+    } else {
+      var date = campaignForm.find(".campaign-form-end").val();
+    }
+
+    var countries = '';
+    var countriesArray = campaignForm.find(".campaign-form-countries").filter(".custom-checked").map(function(){
+      countries += $(this).attr("value") + ', ';
+      return countries;
+    });
+
+    // if (end < start) {
+    //   alert("Campaign START date cannot be later than the campaign END date!");
+    //   return false;
+    // } else {
+    //   var countries = '';
+    //   var countriesArray = campaignForm.find(".campaign-form-countries").filter(".custom-checked").map(function(){
+    //     countries += $(this).attr("value") + ', ';
+    //     return countries;
+    // });
+
+// THE BELOW SHOULD BE MANDATORY FOR CAMPAIGN DATES
+      // if ( confirm("If you changed the dates, do you want task dates to be shifted accordingly?") ) {
+      //   var shift = 1;
+      // } else {
+      //   var shift = 0;
+      // };
+
+      // var countries = JSON.stringify(countriesArray);
+
+      $.ajax({
+        type: 'POST',
+        url: '{% url "save-campaign" %}',
+        data: {
+          campaignid: campaignForm.attr("value"),
+          name: campaignForm.find(".campaign-form-name").val(),
+          vertical: campaignForm.find(".campaign-form-vertical").attr("value"),
+          type: campaignForm.find(".campaign-form-type").attr("value"),
+          progress: campaignForm.find(".campaign-form-progress").attr("value"),
+          // start: start,
+          // end: end,
+          date_type: changeDate,
+          date: date,
+          countries: countries,
+          // shift: shift,
+          current_url: location.pathname,
+
+          csrfmiddlewaretoken: "{{ csrf_token }}"
+        },
+
+        success: function(res){
+          alert(res.message);
+
+          if ( res.redirect == 0 ) {
+            return false;
+          } else {
+            window.location.href = location.origin + res.redirect; /* DO NOT REMOVE location.origin */
+            return false;
+          };
+
+        },
+
+        error: function(res){
+          alert("Please ensure all fields are populated correctly.");
+        }
+      });
+
+    // };
+
+    console.log(countries);
+
+  });
+
+  /* Clone campaign */
+  $(".clone-campaign").on("click", function(){
+    var el = $(this).closest(".campaign-container");
+    console.log(el.attr("id"));
+    var campaignName = el.find(".campaign-data").attr("data-name");
+
+    if( confirm("Do you want to clone " + campaignName + "?") ) {
+      $.ajax({
+        type: 'POST',
+        url: '{% url "clone" %}',
+        data: {
+          campaignid: el.attr("id"),
+          shift: 0,
+          csrfmiddlewaretoken: "{{ csrf_token }}"
+        },
+
+        success: function(res){
+          alert(res);
+
+          var path = location.pathname.split("/");
+          console.log(path);
+          var pathLast = path.pop();
+          console.log(pathLast)
+          var pathFinal = path.join("/");
+          console.log(pathFinal);
+
+          window.location.href = pathFinal; // '/timelines';
+          return false;
+          // location.reload();
+        },
+
+        error: function(res){
+          alert("Clone failed.");
+        }
+      });
+    };
+
+  });
+
+
+  /* Save Campaign Info */
+  $(".campaign-info-save").on("click", function(){
+
+    var campaignForm = $(".campaign-info-form-container");
+
+    var platform = '';
+    var platformArray = campaignForm.find(".campaign-form-platform").filter(".custom-checked").map(function(){
+      platform += $(this).attr("value") + ', ';
+      return platform;
+    });
+
+    console.log(platform);
+
+    $.ajax({
+      type: 'POST',
+      url: '{% url "save-campaign-info" %}',
+      data: {
+        campaignid: campaignForm.attr("value"),
+        phase: campaignForm.find(".campaign-form-phase").val(),
+        complexity: campaignForm.find(".campaign-form-complexity").attr("value"),
+        lcm_owner: campaignForm.find(".campaign-form-lcm-owner").attr("value"),
+        ops_owner: campaignForm.find(".campaign-form-ops-owner").attr("value"),
+        analytics_owner: campaignForm.find(".campaign-form-analytics-owner").attr("value"),
+        platform: platform,
+
+        csrfmiddlewaretoken: "{{ csrf_token }}"
+      },
+
+      success: function(res){
+        alert(res);
+        location.reload();
+      },
+
+      error: function(res){
+        alert("Please ensure all fields are populated correctly.");
+      }
+    });
+  });
+
+
+  /* Save Campaign RU */
+  $(".campaign-capacity-save").on("click", function(){
+
+    var campaignForm = $(".campaign-capacity-form-container");
+
+    $.ajax({
+      type: 'POST',
+      url: '{% url "save-campaign-capacity" %}',
+      data: {
+        campaignid: campaignForm.attr("value"),
+        ops_hours: campaignForm.find(".campaign-form-ops-hours").val(),
+        agency_hours: campaignForm.find(".campaign-form-agency-hours").val(),
+        analytics_hours: campaignForm.find(".campaign-form-analytics-hours").val(),
+
+        csrfmiddlewaretoken: "{{ csrf_token }}"
+      },
+
+      success: function(res){
+        alert(res);
+        location.reload();
+      },
+
+      error: function(res){
+        alert("Please ensure all fields are populated correctly.");
+      }
+    });
+  });
+
+
+  /* Save Campaign Quantifiers */
+  $(".campaign-quantifiers-save").on("click", function(){
+
+    var campaignForm = $(".campaign-quantifiers-form-container");
+
+    $.ajax({
+      type: 'POST',
+      url: '{% url "save-campaign-quantifiers" %}',
+      data: {
+        campaignid: campaignForm.attr("value"),
+        no_channels: campaignForm.find(".campaign-form-no-channels").val(),
+        no_comms: campaignForm.find(".campaign-form-no-comms").val(),
+        no_languages: campaignForm.find(".campaign-form-no-languages").val(),
+        no_dynamic: campaignForm.find(".campaign-form-no-dynamic").val(),
+        no_query_attr: campaignForm.find(".campaign-form-no-quer-attr").val(),
+
+        csrfmiddlewaretoken: "{{ csrf_token }}"
+      },
+
+      success: function(res){
+        alert(res);
+        location.reload();
+      },
+
+      error: function(res){
+        alert("Please ensure all fields are populated correctly. Every value should be an integer.");
+      }
+    });
+  });
+
+
+/* Delete */
+
+$(".campaign-delete, .task-delete, .task-version-delete, .comment-delete, .link-delete").on("click", function() {
+  var el = $(this).closest(".form-main");
+
+
+  if ( $(this).hasClass("campaign-delete") ) {
+    var type = 'campaign';
+    var name = el.find(".name").val();
+
+  } else if ( $(this).hasClass("task-delete") ) {
+    var type = 'task';
+    var name = el.find(".name").val();
+
+  } else if ( $(this).hasClass("task-version-delete") ) {
+    var type = 'task-version';
+    var name = el.find(".name").val();
+
+  } else if ( $(this).hasClass("task-comment-delete") ) {
+    var type = 'task-comment'; // this MUST come before comment-delete
+    var name = el.find("textarea").val();
+
+  } else if ( $(this).hasClass("comment-delete") ) {
+    var type = 'comment';
+    var name = el.find("textarea").val();
+  } else if ( $(this).hasClass("link-delete") ) {
+    var type = 'link';
+    var name = el.find(".task-link-name").val();
+  };
+
+  console.log(type)
+
+  if ( confirm("Are you sure you want to delete " + name + " ?") ) {
+    $.ajax({
+      type: 'POST',
+      url: '{% url "delete" %}',
+      data: {
+        identifier: el.attr("value"),
+        type: type,
+        csrfmiddlewaretoken: "{{ csrf_token }}"
+      },
+
+      success: function(res){
+        alert(name + " deleted.");
+
+        if ( type == 'campaign' ) {
+          var path = location.pathname.split("/");
+          console.log(path);
+          var pathLast = path.pop();
+          console.log(pathLast)
+          var pathFinal = path.join("/");
+          console.log(pathFinal);
+
+          window.location.href = pathFinal; // '/timelines';
+          return false;
+
+        } else {
+          location.reload();
+        } ;
+
+      },
+
+      error: function(res){
+        alert(name + " could NOT be deleted.");
+      }
+
+    });
+  } else { console.log("NOT deleted")};
+
+});
+
+
+
+  /* Add Task */
+
+  $(".add-task").on("click", function(){
+    var el = $(this).closest(".campaign-container");
+    var campaignId = el.attr("id");
+    var campaignData = el.find(".campaign-data");
+    var campaignStart = campaignData.attr("data-start");
+    var campaignEnd = campaignData.attr("data-end");
+    console.log(campaignStart);
+    console.log(campaignEnd);
+
+    var taskForm = $(".task-form-container");
+    taskForm.removeClass("hide");
+    taskForm.find(".archive, .task-delete").remove();
+    taskForm.attr("data-campaign-id", campaignId);
+    taskForm.attr("data-campaign-start", campaignStart);
+    taskForm.attr("data-campaign-end", campaignEnd);
+    // taskForm.attr("data-edit-type", 'new-task');
+    taskForm.attr("value", 0); // To be safe make value 0 here
+  });
+
+
+      /* Edit Task */
+
+      $(".edit-task").on("click", function(){
+
+        var el = $(this).closest(".task");
+        var taskId = el.attr('id');
+        var taskData = el.find(".task-data");
+        var campaignId = taskData.attr("data-campaign-id");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-task" %}',
+          data: {
+            taskid: taskId,
+            campaignid: campaignId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+
+
+        var taskName = taskData.attr("data-name");
+        var taskCategory = taskData.attr("data-category");
+        var taskCategoryId = taskData.attr("data-category-id");
+        var taskProgress = taskData.attr("data-progress");
+        var taskProgressId = taskData.attr("data-progress-id");
+        var taskStart = taskData.attr("data-start");
+        var taskEnd = taskData.attr("data-end");
+        var taskOwner = taskData.attr("data-owner");
+        var taskOwnerId = taskData.attr("data-owner-id");
+        // var taskDependency = taskData.attr("data-dependency");
+        // var taskDependencyId = taskData.attr("data-dependency-id");
+        var campaignId = taskData.attr("data-campaign-id");
+        var campaignStart = taskData.attr("data-campaign-start");
+        var campaignEnd = taskData.attr("data-campaign-end");
+
+
+        var taskForm = $(".task-form-container");
+
+        taskForm.attr("value", taskId);
+        taskForm.find(".task-form-name").val(taskName);
+        taskForm.find(".task-form-category").text(taskCategory);
+        taskForm.find(".task-form-category").attr("value", taskCategoryId);
+        taskForm.find(".task-form-progress").text(taskProgress);
+        taskForm.find(".task-form-progress").attr("value", taskProgressId);
+        taskForm.find(".task-form-start").val(taskStart);
+        taskForm.find(".task-form-end").val(taskEnd);
+        taskForm.find(".task-form-owner").text(taskOwner);
+        taskForm.find(".task-form-owner").attr("value", taskOwnerId);
+        taskForm.attr("data-campaign-id", campaignId);
+        taskForm.attr("data-campaign-start", campaignStart);
+        taskForm.attr("data-campaign-end", campaignEnd);
+        // taskForm.attr("data-edit-type", 'edit-task');
+        // taskForm.find(".task-form-dependency").text(taskDependency);
+        // taskForm.find(".task-form-dependency").attr("value", taskDependencyId);
+
+        taskForm.removeClass("hide");
+
+      });
+
+
+      /* Edit Task Adjust */
+
+      $(".edit-task-adjust").on("click", function(){
+
+        var el = $(this).closest(".task").find(".task-data");
+        var campaignId = el.attr("data-campaign-id");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-campaign" %}', /* same lock as campaign; as RUs need to be re-calculated & task dates shifted */
+          data: {
+            campaignid: campaignId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+
+        var taskData = el;
+        var taskId = taskData.attr("data-id");
+        var taskName = taskData.attr("data-name");
+        var taskCategory = taskData.attr("data-category");
+        var taskCategoryId = taskData.attr("data-category-id");
+        var taskProgress = taskData.attr("data-progress");
+        var taskProgressId = taskData.attr("data-progress-id");
+        var taskStart = taskData.attr("data-start");
+        var taskEnd = taskData.attr("data-end");
+        var taskOwner = taskData.attr("data-owner");
+        var taskOwnerId = taskData.attr("data-owner-id");
+        // var taskDependency = taskData.attr("data-dependency");
+        // var taskDependencyId = taskData.attr("data-dependency-id");
+        var campaignId = taskData.attr("data-campaign-id");
+        var campaignStart = taskData.attr("data-campaign-start");
+        var campaignEnd = taskData.attr("data-campaign-end");
+
+
+        var taskForm = $(".task-adjust-form-container");
+
+        taskForm.attr("value", taskId);
+        taskForm.find(".task-form-name").val(taskName);
+        taskForm.find(".task-form-category").text(taskCategory);
+        taskForm.find(".task-form-category").attr("value", taskCategoryId);
+        taskForm.find(".task-form-progress").text(taskProgress);
+        taskForm.find(".task-form-progress").attr("value", taskProgressId);
+        taskForm.find(".task-form-start").val(taskStart);
+        taskForm.find(".task-form-end").val(taskEnd);
+        taskForm.find(".task-form-owner").text(taskOwner);
+        taskForm.find(".task-form-owner").attr("value", taskOwnerId);
+        taskForm.attr("data-campaign-id", campaignId);
+        taskForm.attr("data-campaign-start", campaignStart);
+        taskForm.attr("data-campaign-end", campaignEnd);
+        // taskForm.attr("data-edit-type", 'edit-task');
+        // taskForm.find(".task-form-dependency").text(taskDependency);
+        // taskForm.find(".task-form-dependency").attr("value", taskDependencyId);
+
+        taskForm.removeClass("hide");
+
+      });
+
+
+      /* Edit Task Version */
+
+      $(".edit-task-version").on("click", function(){
+
+        var el = $(this).closest(".task-version");
+        var taskVersionId = el.attr('id');
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-task-version" %}',
+          data: {
+            taskid: taskVersionId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              location.reload();
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var taskForm = $(".task-form-container");
+
+
+        var taskData = el.find(".task-version-data");
+        var taskName = taskData.attr("data-version-name");
+        var taskProgress = taskData.attr("data-version-progress");
+        var taskProgressId = taskData.attr("data-version-progress-id");
+        var taskStart = taskData.attr("data-version-start");
+        var taskEnd = taskData.attr("data-version-end");
+        var taskOwner = taskData.attr("data-version-owner");
+        var taskOwnerId = taskData.attr("data-version-owner-id");
+        // var taskDependency = taskData.attr("data-dependency");
+        // var taskDependencyId = taskData.attr("data-dependency-id");
+        // var taskId = taskData.attr("data-task-id");
+
+
+        /* The below won't matter for task versions */
+
+        // var campaignStart = taskData.attr("data-version-campaign-start");
+        // var campaignEnd = taskData.attr("data-version-campaign-end");
+
+
+        var taskForm = $(".task-version-form-container");
+        taskForm.attr("value", taskVersionId);
+        taskForm.find(".task-form-name").val(taskName);
+        taskForm.find(".task-form-progress").text(taskProgress);
+        taskForm.find(".task-form-progress").attr("value", taskProgressId);
+        taskForm.find(".task-form-start").val(taskStart);
+        taskForm.find(".task-form-end").val(taskEnd);
+        taskForm.find(".task-form-owner").text(taskOwner);
+        taskForm.find(".task-form-owner").attr("value", taskOwnerId);
+
+        // taskForm.attr("data-task-id", taskId);
+        // taskForm.attr("data-campaign-start", campaignStart);
+        // taskForm.attr("data-campaign-end", campaignEnd);
+
+        taskForm.removeClass("hide");
+
+      });
+
+/* Save Task */
+
+      $(".task-save").on("click", function(){
+
+        var el = $(".task-form-container");
+
+        var taskForm = el.find(".latest");
+
+        var start = taskForm.find(".task-form-start").val();
+        var end = taskForm.find(".task-form-end").val();
+
+        var campaignId = el.attr("data-campaign-id");
+        // var campaignStart = el.attr("data-campaign-start");
+        // console.log(campaignStart);
+        // var campaignEnd = el.attr("data-campaign-end");
+        // console.log(campaignEnd);
+
+
+        // var violation_count = 0;
+
+        // Date Validation - do not use elseif to combine all 3!
+        if (end < start) {
+          alert("Task START date (" + start + ") cannot be later than the task END date!");
+          return false;
+          // violation_count++;
+          // console.log(violation_count);
+        } ;
+
+        // (start < campaignStart || start > campaignEnd) is not nescessary as we're already checking it in 1st IF statement
+
+        // if (start < campaignStart) {
+        //   alert("Task START date (" + start + ") cannot be out of campaign range! Campaign Start: " + campaignStart + " | Campaign End: " + campaignEnd );
+        //   return false;
+        //   // violation_count++;
+        //   // console.log(violation_count);
+        // } ;
+        //
+        // if (end > campaignEnd) {
+        //   alert("Task END date (" + end + ") cannot be out of campaign range! Campaign Start: " + campaignStart + " | Campaign End: " + campaignEnd );
+        //   return false;
+        //   // violation_count++;
+        //   // console.log(violation_count);
+        // } ;
+
+        // if ( violation_count == 0 ) {
+        //
+        // } else {
+        //   return false;
+        // };
+
+        var task_versions = el.find(".version").map(function(){
+          var task_version = new Object();
+
+          task_version.taskversionid = 0;
+          task_version.name = $(this).find(".task-form-name").val();
+          task_version.progress = $(this).find(".task-form-progress").attr("value");
+          task_version.start = $(this).find(".task-form-start").val();
+          console.log($(this).find(".task-form-start").val());
+          task_version.end = $(this).find(".task-form-end").val();
+          console.log($(this).find(".task-form-end").val());
+          task_version.owner = $(this).find(".task-form-owner").attr("value");
+
+          return task_version;
+
+        });
+
+          var versions = JSON.stringify(task_versions);
+
+
+          $.ajax({
+            type: 'POST',
+            url: '{% url "save-task" %}',
+            data: {
+              // type: el.attr("data-edit-type"),
+              campaignid: campaignId,
+              taskid: el.attr("value"),
+              name: taskForm.find(".task-form-name").val(),
+              category: taskForm.find(".task-form-category").attr("value"),
+              progress: taskForm.find(".task-form-progress").attr("value"),
+              start: start,
+              end: end,
+              owner: taskForm.find(".task-form-owner").attr("value"),
+              versions: versions,
+
+              csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+
+            success: function(res){
+              alert(res);
+              // location.hash =  "#saveTask";
+              location.reload();
+            },
+
+            error: function(res){
+              alert("Please ensure all fields are populated correctly. ");
+            }
+          });
+
+        });
+
+
+    /* Save Task Adjust */
+
+          $(".task-adjust-save").on("click", function(){
+
+            var el = $(".task-adjust-form-container");
+
+            var taskForm = el.find(".latest");
+
+            var start = taskForm.find(".task-form-start").val();
+            var end = taskForm.find(".task-form-end").val();
+
+            var campaignId = el.attr("data-campaign-id");
+            // var campaignStart = el.attr("data-campaign-start");
+            // console.log(campaignStart);
+            // var campaignEnd = el.attr("data-campaign-end");
+            // console.log(campaignEnd);
+
+
+            // var violation_count = 0;
+
+            // Date Validation - do not use elseif to combine all 3!
+            if (end < start) {
+              alert("Task START date (" + start + ") cannot be later than the task END date!");
+              return false;
+              // violation_count++;
+              // console.log(violation_count);
+            } ;
+
+            // (start < campaignStart || start > campaignEnd) is not nescessary as we're already checking it in 1st IF statement
+            //
+            // if (start < campaignStart) {
+            //   alert("Task START date (" + start + ") cannot be out of campaign range! Campaign Start: " + campaignStart + " | Campaign End: " + campaignEnd );
+            //   return false;
+            //   // violation_count++;
+            //   // console.log(violation_count);
+            // } ;
+            //
+            // if (end > campaignEnd) {
+            //   alert("Task END date (" + end + ") cannot be out of campaign range! Campaign Start: " + campaignStart + " | Campaign End: " + campaignEnd );
+            //   return false;
+            //   // violation_count++;
+            //   // console.log(violation_count);
+            // } ;
+
+            // if ( violation_count == 0 ) {
+            //
+            // } else {
+            //   return false;
+            // };
+
+            var task_versions = el.find(".version").map(function(){
+              var task_version = new Object();
+
+              task_version.taskversionid = 0;
+              task_version.name = $(this).find(".task-form-name").val();
+              task_version.progress = $(this).find(".task-form-progress").attr("value");
+              task_version.start = $(this).find(".task-form-start").val();
+              console.log($(this).find(".task-form-start").val());
+              task_version.end = $(this).find(".task-form-end").val();
+              console.log($(this).find(".task-form-end").val());
+              task_version.owner = $(this).find(".task-form-owner").attr("value");
+
+              return task_version;
+
+            });
+
+              var versions = JSON.stringify(task_versions);
+
+
+              $.ajax({
+                type: 'POST',
+                url: '{% url "save-task-adjust" %}',
+                data: {
+                  // type: el.attr("data-edit-type"),
+                  campaignid: campaignId,
+                  taskid: el.attr("value"),
+                  name: taskForm.find(".task-form-name").val(),
+                  category: taskForm.find(".task-form-category").attr("value"),
+                  progress: taskForm.find(".task-form-progress").attr("value"),
+                  start: start,
+                  end: end,
+                  owner: taskForm.find(".task-form-owner").attr("value"),
+                  versions: versions,
+
+                  csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+
+                success: function(res){
+                  alert(res);
+                  // location.hash =  "#saveTask";
+                  location.reload();
+                },
+
+                error: function(res){
+                  alert("Please ensure all fields are populated correctly. ");
+                }
+              });
+
+            });
+
+
+      /* Save Task Version */
+
+            $(".task-version-save").on("click", function(){
+
+              var el = $(".task-version-form-container");
+
+              // var taskForm = $(".latest");
+
+              var start = el.find(".task-form-start").val();
+              var end = el.find(".task-form-end").val();
+
+              $.ajax({
+                type: 'POST',
+                url: '{% url "save-task-version" %}',
+                data: {
+                  taskversionid: el.attr("value"),
+                  name: el.find(".task-form-name").val(),
+                  progress: el.find(".task-form-progress").attr("value"),
+                  start: start,
+                  end: end,
+                  owner: el.find(".task-form-owner").attr("value"),
+                  // versions: versions,
+
+                  csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+
+                success: function(res){
+                  alert(res);
+                  location.reload();
+                },
+
+                error: function(res){
+                  alert("Please ensure all fields are populated correctly. " + res);
+                }
+              });
+
+
+            });
+
+
+
+      /* Add Comment */
+      $(".add-comment, .add-task-comment").on("click", function(){
+        var el = $(".comment-form-container");
+        el.removeClass("hide");
+        el.find(".comment-delete, .comment-commenter, .comment-details").remove();
+
+        if ($(this).hasClass("add-comment")) {
+          var type = 'campaign';
+          var identifier = $(this).closest(".campaign-container").attr("id");
+
+        } else if ($(this).hasClass("add-task-comment")) {
+          var type = 'task';
+          var identifier = $(this).closest(".task").attr("id");
+          el.find(".comment-delete").addClass("task-comment-delete");
+        };
+
+        el.attr("data-comment-type", type);
+        el.attr("data-comment-identifier", identifier);
+        el.attr("value", 0);
+        // var el = $(this).closest(".modal-form").find(".comment").last();
+        // var clone = el.clone(true, true);
+        // clone.find("textarea").val('');
+        // clone.find(".comment-details").remove();
+        // clone.insertAfter(el);
+
+      });
+
+      /* Save Comment */
+      $(".comment-save").on("click", function(){
+        var el = $(this).closest(".form-main");
+
+        var type = el.attr("data-comment-type");
+        var identifier = el.attr("data-comment-identifier");
+        var commentText = el.find("textarea").val();
+        var commentId = el.attr("value");
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "save-comment" %}',
+          data: {
+            type: type,
+            identifier: identifier,
+            comment: commentText,
+            commentid: commentId,
+
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(){
+            alert("Comment saved!");
+            location.reload();
+          },
+
+          error: function(){
+            alert("Comment save failed");
+          }
+        });
+
+      });
+
+      /* Edit comment */
+      $(".edit-comment").on("click", function(){
+        var el = $(this).closest(".comment");
+        var commentId = el.attr('id');
+
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-comment" %}',
+          data: {
+            commentid: commentId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              // location.reload();
+            } else {
+              var commentData = el.find(".comment-data");
+              var commentCommenter = commentData.attr("data-comment-commenter");
+              var commentDate = commentData.attr("data-comment-date");
+              var commentComment = commentData.attr("data-comment-comment");
+
+              var commentForm = $(".comment-form-container");
+
+              commentForm.attr("data-comment-type", "campaign");
+              commentForm.attr("data-comment-identifier", 0);
+              commentForm.find(".comment-commenter").text(commentCommenter);
+              commentForm.find(".comment-details").text(commentDate);
+              commentForm.find(".comment-text").val(commentComment);
+              commentForm.attr("value", commentId);
+
+              commentForm.removeClass("hide");
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+      });
+
+
+      /* Edit task comment */
+      $(".edit-task-comment").on("click", function(){
+        var el = $(this).closest(".task-comment");
+        var commentId = el.attr('id');
+
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-task-comment" %}',
+          data: {
+            commentid: commentId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+              // location.reload();
+            } else {
+              var commentData = el.find(".task-comment-data");
+              var commentCommenter = commentData.attr("data-task-comment-commenter");
+              var commentDate = commentData.attr("data-task-comment-date");
+              var commentComment = commentData.attr("data-task-comment-text");
+
+              var commentForm = $(".comment-form-container");
+
+              commentForm.attr("data-comment-type", "task");
+              commentForm.attr("data-comment-identifier", 0);
+              commentForm.find(".comment-commenter").text(commentCommenter);
+              commentForm.find(".comment-details").text(commentDate);
+              commentForm.find(".comment-text").val(commentComment);
+              commentForm.attr("value", commentId);
+
+              commentForm.find(".comment-delete").addClass("task-comment-delete").removeClass("comment-delete");
+              commentForm.removeClass("hide");
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+      });
+
+
+      /* Add Link */
+      $(".add-link").on("click", function(){
+        var campaignId = $(this).closest(".campaign-container").attr("id");
+
+        var linkForm = $(".link-form-container");
+        linkForm.attr("data-campaign-id", campaignId);
+        linkForm.attr("value", 0); /* New Link */
+
+        linkForm.removeClass("hide");
+
+      });
+
+      /* Edit Link */
+      $(".edit-link").on("click", function(){
+        var el = $(this).closest(".link");
+        var el2 = $(this).closest(".campaign-container");
+
+        var linkId = el.attr('id');
+        var campaignId = el2.attr('id');
+
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-link" %}',
+          data: {
+            linkid: linkId,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var linkName = el.find("a").text();
+        var link = el.find("a").attr("href");
+
+        var linkForm = $(".link-form-container");
+
+        linkForm.attr("data-campaign-id", campaignId);
+        linkForm.attr("value", linkId);
+        linkForm.find(".task-link-name").val(linkName);
+        linkForm.find(".task-link").val(link);
+
+        linkForm.removeClass("hide");
+
+      });
+
+
+      /* Save Link */
+      $(".link-save").on("click", function(){
+        var el = $(this).closest(".form-main");
+
+        var campaignId = el.attr("data-campaign-id");
+        var linkId = el.attr("value");
+        var linkName = el.find(".task-link-name").val();
+        var link = el.find(".task-link").val();
+
+        if ( linkName.length > 0 && link.length > 0 ) {
+          $.ajax({
+            type: 'POST',
+            url: '{% url "save-link" %}',
+            data: {
+              campaignid: campaignId,
+              linkid: linkId,
+              link_name: linkName,
+              link: link,
+
+              csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+
+            success: function(res){
+              alert(res);
+              location.reload();
+            },
+
+            error: function(){
+              alert("Link save failed");
+            }
+          });
+        } else {
+          alert("Fields cannot be empty!");
+          return false
+        }
+
+      });
+
+/* Edit Link Main */
+
+      $(".edit-link-main").on("click", function(){
+        var el = $(this).closest(".campaign-container");
+        var campaignId = el.attr('id');
+
+        var type = '';
+        linkForm = $(".link-form-container-main")
+
+        if ( $(this).hasClass("jira") ) {
+          type = "jira";
+        } else if ( $(this).hasClass("chart") ) {
+          type = "chart";
+        } else if ( $(this).hasClass("perf") ) {
+          type = "perf";
+        } else if ( $(this).hasClass("monitor") ) {
+          type = "monitor";
+        } ;
+
+
+        $.ajax({
+          type: 'POST',
+          url: '{% url "edit-campaign-info" %}',
+          data: {
+            campaignid: campaignId,
+            type: type,
+            csrfmiddlewaretoken: "{{ csrf_token }}"
+          },
+
+          success: function(res, status){
+            // alert(res.code);
+            if ( res.code == 0 ) {
+              alert(res.message);
+
+            } else if ( res.code == 3 ) {
+              alert(res.message);
+              /* location.reload(); DO NOT enable this! User may never be able to edit until after 2 hours if they can't find the tab where they last edited but not saved. */
+            };
+          },
+
+          error: function(res){
+            alert("Edit request failed");
+          }
+        });
+
+        var link = $(this).closest(".link").find("a").attr("href");
+
+        linkForm.attr("data-campaign-id", campaignId);
+        linkForm.attr("data-link-type", type);
+        linkForm.find(".task-link").val(link);
+
+        linkForm.removeClass("hide");
+
+      });
+
+
+      /* Save Link Main */
+      $(".link-save-main").on("click", function(){
+        var el = $(this).closest(".form-main");
+
+        var campaignId = el.attr("data-campaign-id");
+        var link = el.find(".task-link").val();
+        var type = el.attr("data-link-type");
+
+        if ( link.length > 0 ) {
+          $.ajax({
+            type: 'POST',
+            url: '{% url "save-campaign-link" %}',
+            data: {
+              campaignid: campaignId,
+              link: link,
+              type: type,
+
+              csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+
+            success: function(res){
+              alert(res);
+              location.reload();
+            },
+
+            error: function(){
+              alert("Link save failed");
+            }
+          });
+        } else {
+          alert("Fields cannot be empty!");
+          return false
+        } ;
+
+      });
+
+
+      /* Archive Task */
+      $(".archive").on("click", function(){
+        var el = $(this).closest(".modal-form");
+        var versionCount = el.find(".version").length + 1;
+        var taskid = el.closest(".task-form-container").attr("value");
+        var originalVersionCount = parseInt($("#"+taskid+".task").find(".task-data").attr("data-version-count"));
+        console.log(originalVersionCount);
+        // .find(".task-data").attr("data-version-count");
+        var original = el.find(".latest");
+        var taskName =  original.find(".task-form-name").val();
+
+        var clone = original.clone(true, true);
+        clone.addClass("version");
+        clone.removeClass("latest");
+        // clone.attr("value", 0); not necessary as form structure only produces new versions each time
+        clone.find(".comment").remove();
+        clone.find(".task-form-name").val("v" + (versionCount + originalVersionCount) + ": " + taskName);
+        clone.insertAfter(original);
+
+        clone.find(".datepicker").each(function(){
+
+          if ( $(this).hasClass("task-form-start") ) {
+            $(this).closest(".input").replaceWith('<span class="input"><input type="text" class="task-form-start date datepicker" value="' + $(this).val() + '" required /></span>').css("z-index", "-1");
+          } else if ( $(this).hasClass("task-form-end") ) {
+            $(this).closest(".input").replaceWith('<span class="input"><input type="text" class="task-form-end date datepicker" value="' + $(this).val() + '" required /></span>').css("z-index", "-1");
+          };
+
+
+          var datepick = $('.datepicker');
+
+          datepick.datepicker({
+            dateFormat: "yy-mm-dd",
+            altField: $(this).find(".datepicker"),
+            altFormat: "yy-mm-dd",
+
+            onSelect: function(){
+              $(this).val();
+            }
+          }); // WARNING! Leave datepicker at the end of the code, or it'll dissappear!
+
+        });
+
+        clone.prepend('<i class="icon-remove-version material-icons">delete</i>');
+        $(".icon-remove-version").on("click", version_remove); // attach event handler
+
+      });
+
+
+      /* Version remove from form */
+      var version_remove = function (){
+        $(this).closest(".version").remove();
+        console.log("REMOVE");
+      };
+
+      /* Cancel */
+      $(".campaign-cancel, .task-cancel, .comment-cancel, .link-cancel, .link-cancel-main, .campaign-info-cancel, .campaign-quantifiers-cancel, .task-adjust-cancel").on("click", function(){
+        if( confirm("Are you sure you want to cancel your changes?") ) {
+
+          /* OPTIMISE! */
+          var type = '';
+          if ( $(this).hasClass("campaign-cancel") ) {
+            type = 'campaign';
+            var identifier = $(this).closest(".form-main").attr("value");
+          } else if ( $(this).hasClass("task-adjust-cancel") ) {
+            type = 'campaign';
+            var identifier = $(this).closest(".form-main").attr("data-campaign-id");
+          } else if ( $(this).hasClass("task-cancel") ) {
+            type = 'task';
+            var identifier = $(this).closest(".form-main").attr("value");
+          } else if ( $(this).hasClass("campaign-info-cancel") ) {
+            type = 'campaign-info';
+            var identifier = $(this).closest(".form-main").attr("value");
+          } else if ( $(this).hasClass("campaign-quantifiers-cancel") ) {
+            type = 'campaign-quantifiers';
+            var identifier = $(this).closest(".form-main").attr("value");
+          } else if ( $(this).hasClass("comment-cancel") ) {
+            type = 'comment';
+            var identifier = $(this).closest(".form-main").attr("value");
+          } else if ( $(this).hasClass("link-cancel") ) {
+            type = 'campaign-link';
+            var identifier = $(this).closest(".form-main").attr("value");
+          } else if ( $(this).closest(".form-main").attr("data-link-type") == "jira" ) {
+            type = 'jira';
+            var identifier = $(this).closest(".form-main").attr("data-campaign-id");
+          } else if ( $(this).closest(".form-main").attr("data-link-type") == "chart" ) {
+            type = 'chart';
+            var identifier = $(this).closest(".form-main").attr("data-campaign-id");
+          } else if ( $(this).closest(".form-main").attr("data-link-type") == "perf" ) {
+            type = 'perf';
+            var identifier = $(this).closest(".form-main").attr("data-campaign-id");
+          } else if ( $(this).closest(".form-main").attr("data-link-type") == "monitor" ) {
+            type = 'monitor';
+            var identifier = $(this).closest(".form-main").attr("data-campaign-id");
+          };
+
+          $.ajax({
+            type: 'POST',
+            url: '{% url "cancel" %}',
+            data: {
+              type: type,
+              identifier: identifier,
+              csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+
+            success: function(res){
+              // $(".task-form-container").find(".version").remove();
+              location.reload(); // reload is essential to reset toggled classes
+            },
+
+            error: function(res){
+              alert("Cancel request failed");
+              // location.reload(); // reload is essential to reset toggled classes
+            }
+          });
+
+        };
+
+        $(this).closest(".form-main").addClass("hide");
+
+      });
+
+
+
+      /* Cancel Week */
+      $(".week-cancel").on("click", function(){
+        if( confirm("Are you sure you want to cancel your changes?") ) {
+
+          var type = 'week';
+          var identifier = $(this).closest(".form-main").attr("value");
+
+          $.ajax({
+            type: 'POST',
+            url: '{% url "cancel" %}',
+            data: {
+              type: type,
+              identifier: identifier,
+              csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+
+            success: function(res){
+
+              // location.reload(); // reload is essential to reset toggled classes
+            },
+
+            error: function(res){
+              alert("Cancel request failed");
+              // location.reload(); // reload is essential to reset toggled classes
+            }
+          });
+
+        };
+
+        $(this).closest(".form-main").addClass("hide");
+
+      });
+
+      /* CHECKBOX */
+      $(".campaign-form-countries, .campaign-form-platform").on("click", function(){
+        $(this).toggleClass("custom-checked");
+      });
+
+
+      /* DROPDOWN */
+      $(".custom-dropdown, .selected").on("click", function(e){
+
+        if( e.target !== this ) {
+          return false; // prevent toggle event from reaching select-list
+        }
+
+        var el = $(this).closest(".custom-dropdown");
+
+        // el.not(".custom-dropdown-list").addClass("form-field-focus");
+        el.find(".custom-dropdown-list").toggleClass("hide");
+
+
+      });
+
+      $(".select-list").on("click", function(){
+
+        var selection = $(this).attr("value");
+        var selectionText = $(this).find("a").text();
+
+        var el = $(this).closest(".custom-dropdown");
+
+        el.find(".selected").attr("value", selection).text(selectionText);
+        $(this).closest(".custom-dropdown-list").addClass("hide");
+
+        // el.removeClass("form-field-focus", 250);
+
+        // el.find(".label").css("color", "#48C77A");
+
+      });
+
+      /* DATEPICKER */
+
+      // Initialize datepicker
+      $(function(){
+          $(".datepicker").datepicker({
+            dateFormat: "yy-mm-dd"
+          });
+      });
+
+      // Reveal datepicker on click
+      $(".date").on("click", function(){
+
+        $(this).datepicker({
+          altField: $(this).find(".datepicker"),
+          altFormat: "yy-mm-dd",
+
+          onSelect: function(){
+            $(this).val();
+          }
+        });
+      });
+
+
+      /* INPUT */
+    //   $("input").on("click focus", function(e){
+    //     if( e.target !== this ) {
+    //       return false; // prevent toggle event from reaching select-list
+    //     }
+    //
+    //     $(this).closest(".custom-input").find(".label, input").each(function(){
+    //       $(this).toggleClass("form-field-focus");
+    //     });
+    //
+    //     // $(document).on("click", function(){
+    //     //   $(this).closest(".custom-input").find(".label, input").each(function(){
+    //     //     $(this).removeClass("form-field-focus");
+    //     //   });
+    //     // });
+    //   });
+    //
+    //
+
+  });
+
+    </script>
+
+    <style>
+
+      /* @import url('https://fonts.googleapis.com/css?family=Open+Sans'); */
+      @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900');
+      body, html {
+        font-family: "Roboto", sans-serif;
+        height: 100%;
+        color: #000;
+      }
+
+      p {
+        margin: 0;
+        padding: 0;
+      }
+
+
+      .timelines {
+        font-size: 80%;
+        font-weight: 100;
+
+      }
+
+      .hide {
+        display: none;
+      }
+
+      .sticky {
+        position: -webkit-sticky; /* Safari */
+        position: sticky;
+        top: 23vh;
+        z-index: 3000000;
+        background-color: white;
+      }
+
+      .backdrop {
+        position: fixed;
+        width: 150vw;
+        height: 30vh; /* 50vh */
+        top: -10vh; /* -30vh */
+        left: -20vw;
+        /* background-color: #48C77A; */
+        background-image: linear-gradient(-150deg, #35C09D, #48C77A); /* #35C09D, #68DF9D); #EDF5E2
+        /* border-radius: 45%; */
+        transform: rotate(2deg);
+        border: 5px solid #FFF;
+        outline: 5px solid #48C77A;
+      }
+
+      .backdrop-background {
+        position: fixed;
+        width: 100%;
+        background-color: #FFF;
+        height: 23vh;
+        z-index: 2500000;
+        top: 0;
+      }
+
+      .backdrop-background-click {
+        position: fixed;
+        width: 100%;
+        background-color: #FFF;
+        height: 27%;
+        z-index: 2500000;
+        top: 0;
+      }
+
+      .nav {
+        position: fixed;
+        top: 2vh;
+        width: 20%;
+        background-color: rgba(0,0,0,0);
+        z-index: 7000000;
+      }
+
+
+      .bar1 {
+        width: 2em;
+        margin: 0.1em;
+        height: 0.3em;
+        background-color: #54559A;
+      }
+
+      .custom-menu {
+        background-image: linear-gradient(125deg, #EDF5E2, #7CD8CE);
+        /* background-color: #FAFBFE; */
+        margin-top: 5%;
+        border-radius: 0 12px 12px 12px;
+        padding: 1% 2% 2% 2%;
+        box-shadow: 10px 10px 20px 0px rgba(25, 99, 121, 0.1);
+        height: 50%;
+        overflow-y: scroll;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE 10+ */
+      }
+
+      .custom-menu li {
+        border: none;
+        box-shadow: none;
+        color:  #48C77A;
+        padding: 3% 5%;
+      }
+
+      .custom-menu-list {
+          border: none;
+          /* background-color: #F7F7F7; /* LIGHT GREY */
+
+          border-radius: 5px;
+          display: block;
+          font-size: 1em;
+          font-weight: 300;
+          width: 100%;
+
+      }
+
+      .menu-select, .menu-group {
+        padding-left: 5%;
+        /* background-color: #48C77A; */
+        background: transparent;
+
+        -webkit-transition: all 150ms ease-out 0.05s;
+        -moz-transition: all 150ms ease-out 0.05s;
+        -o-transition: all 150ms ease-out 0.05s;
+        transition: all 150ms ease-out 0.05s;
+      }
+
+      .menu-select * {
+        /* background-color: #48C77A; */
+        /* color: #FFF; */
+        /* color: #48C77A; */
+        background: transparent;
+        font-weight: 300;
+        border: none;
+        color: #54559A;
+      }
+
+      .menu-group {
+        font-size: 0.9em;
+        font-weight: 900;
+        border: none;
+        margin-top: 2%;
+        margin-bottom: 0;
+        /* background-color: #54559A; */
+        color: #6F1BA6; /* 54559A; */
+        /* width: 97%; */
+      }
+
+      .menu-select:hover {
+        /* color: #48C77A; */
+        padding-left: 10%;
+
+        -webkit-transition: all 150ms ease-out 0.05s;
+        -moz-transition: all 150ms ease-out 0.05s;
+        -o-transition: all 150ms ease-out 0.05s;
+        transition: all 150ms ease-out 0.05s;
+
+      }
+
+      .weeks-container {
+        padding: 0% 2%;
+        position: fixed;
+        width: 95vw;
+        top: 0vh;
+      }
+
+      .backdrop, .weeks-container {
+        z-index: 4000000;
+      }
+
+      .campaigns-container {
+        padding: 0% 2%;
+        margin-top: 23vh;
+        width: 95vw;
+      }
+
+      .week-container, .campaign-container {
+        padding: 1% 0 0 0;
+        margin: 0;
+      }
+
+      .week-day {
+        position: relative;
+      }
+
+      .week-edit {
+        display: none;
+      }
+
+      .week-day:hover {
+        background-color: #EFA835; /* Orange */
+        /* padding: 1%; */
+        border-radius: 15px 0 0 15px;
+        /* font-size: 1em; */
+        color: #FFF;
+        /* box-shadow: 0px 0px 10px 2px rgba(25, 99, 121, 0.9); */
+      }
+
+      .week-day:hover > .week-edit {
+        display: inline-block;
+        position: absolute;
+        padding: 20%;
+        font-size: 1.25vw;
+        top: -65%;
+        left: 85%;
+        /* padding-left: 0.5%; */
+        /* top: 1vh; */
+        background-color: #EFA835;
+        /* margin-left: 2%;
+        padding: 0.5%;
+        border-radius: 50%; */
+        color: #FFF;
+        border-radius: 15px;
+        z-index: 2;
+        /* box-shadow: 0px 0px 10px 2px rgba(25, 99, 121, 0.9); */
+      }
+
+      .campaign:hover {
+        border-bottom: 1px solid #EEE;
+        box-shadow: 10px 10px 20px 0px rgba(25, 99, 121, 0.1);
+      }
+
+      .tasks-container {
+        margin-bottom: 100%;
+        z-index: 1000000;
+      }
+
+      .scroll {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .weeks-marker, .weeks-month, .weeks-dates, .weeks-teams, .weeks-campaign-count, .campaign, .task-version {
+        padding: 0;
+        font-weight: 400;
+
+        display: grid;
+        grid-template-columns: 1fr 5fr;
+        /* align-items: center; */
+        align-items: center;
+      }
+
+      .weeks-marker, .weeks-month, .weeks-dates, .weeks-teams, .weeks-campaign-count {
+        padding: 0.2% 0% 0.2% 0%;
+      }
+
+      .campaign-info {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+
+        margin: 1% 0 3% 0;
+        padding: 0.95%;
+        background-color: #F9F9F9; /* #FAFBFE; */
+        border-radius: 12px;
+        box-shadow: 10px 10px 20px 0px rgba(25, 99, 121, 0.1);
+
+        /* background: #F7F7F7; */
+
+      }
+
+      .campaign-info .link, .campaign-info a {
+        background-color: #F9F9F9; /* #FAFBFE;  */
+      }
+
+      .campaign-info > div {
+        border-right: 2px solid #EEE;
+        margin: 0;
+        padding: 0 7%;
+        height: 15em;
+        overflow-y: auto;
+      }
+
+      .campaign-info > div {
+        overflow-y: scroll;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE 10+ */
+      }
+
+      .campaign-info > div::-webkit-scrollbar { /* WebKit */
+        width: 0;
+        height: 0;
+      }
+
+      .campaign-info > div:last-child {
+        border: none;
+      }
+
+      .campaign-info-main *,
+      .campaign-info-links *,
+      .campaign-info-comments *,
+       {
+        padding-top: 0;
+        margin: 0;
+        line-height: 1;
+        text-decoration: none;
+        background-color: #FFF;
+      }
+
+      .campaign-info-main,
+      .campaign-info-links,
+      .campaign-info-comments {
+        position: relative;
+      }
+
+
+      .comment-title, .task-comment-title {
+        font-weight: 400;
+        margin-top: 10%;
+        margin-bottom: 0;
+        padding: 0;
+      }
+
+      .comment-text {
+        margin-top: 5%;
+      }
+
+      .comment > p {
+        margin: 0;
+        margin-top: 7%;
+      }
+/*
+      .task-comment {
+        padding: 0;
+        margin: 0;
+      } */
+
+      .comment .comment-box, .task-comments-container  .task-comment-box {
+        margin: 3% 0 0 0;
+      }
+
+      .comment-box, .task-comment-box {
+        background-color: #FFF;
+        color: #000;
+        padding: 3% 5%;
+        border-radius: 0 15px 15px 15px;
+        box-shadow: 10px 10px 20px 0px rgba(25, 99, 121, 0.1);
+      }
+
+
+
+      /* .label-info {
+        display: none;
+
+        position: absolute;
+        top: 10%;
+        right: 5%;
+        font-size: 1.2em;
+        vertical-align: middle;
+
+      } */
+
+
+
+      .view-task-comment {
+        display: inline-block;
+        vertical-align: middle;
+        color: #CADADA;
+      }
+
+      .label-info, .edit-comment {
+        visibility: hidden;
+      }
+
+      .edit-link-main, .edit-link {
+        display: none;
+      }
+
+      .campaign-info-main:hover .label-info,
+      .campaign-info-comments:hover .label-info,
+      .campaign-info-comments:hover .edit-comment,
+      .campaign-info-links:hover .label-info {
+        color: #CADADA;
+        visibility: visible;
+
+        /* display: inline-block; */
+        /* vertical-align: middle; */
+      }
+
+
+      .campaign-info-links:hover .edit-link-main,
+      .campaign-info-links:hover .edit-link {
+        color: #CADADA;
+        display: inline-block;
+        vertical-align: middle;
+
+      }
+
+      .campaign-info-main:hover .label-info:hover,
+      .campaign-info-links:hover .label-info:hover,
+      .campaign-info-comments:hover .label-info:hover,
+      .campaign-info-comments:hover .edit-comment:hover,
+      .campaign-info-links:hover .edit-link-main:hover,
+      .campaign-info-links:hover .edit-link:hover,
+      .task-icons > i:hover,
+      .view-task-comment:hover {
+        color: #54559A; /* #48C77A; */
+      }
+
+      .more-details {
+        font-weight: 500;
+        /* padding-bottom: 5%;
+        border-bottom: 1px solid #000; */
+      }
+
+      .campaign-more-details {
+        font-weight: 400;
+        line-height: 1.75;
+      }
+
+      .campaign-more-details span {
+        font-weight: 300;
+        margin-left: 2%;
+      }
+
+      /* .campaign-more-details  {
+        font-weight: 100;
+        margin: 0 0 5% 2%;
+        margin-left: 2%;
+      } */
+
+      .more-details::after {
+        content:' ';
+        display: block;
+        margin-top: 3%;
+        border-bottom: 1px solid #000;
+        width: 85%;
+      }
+
+      /* .weeks-marker {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+
+      .weeks-marker .weeks-ru {
+        background-color: red;
+      }
+
+      .marker {
+        width: 100%;
+        height: 100%;
+
+        background-color: #CADADA;
+        z-index: 100000;
+      } */
+
+      /* .weeks-marker {
+        border-right: 1px solid #F7F7F7;
+      } */
+
+      .weeks-title {
+        text-align: right;
+        line-height: 1;
+        font-weight: 500;
+        padding: 0% 15% 0% 0%;
+      }
+
+      .weeks-teams, .weeks-campaign-count {
+        color: #FFF;
+        font-weight: 300;
+      }
+
+      .weeks-month, .weeks-dates {
+        font-weight: 500;
+        color: #54559A; /* DARK GREEN */
+      }
+
+      /* .weeks-dates .weeks-ru {
+        border-bottom: 1px solid #34495E;
+      } */
+
+      .weeks-teams:hover, .weeks-campaign-count:hover {
+        background-color: #54559A; /* DARK GREEN */ /* #8793EF; /* #48C77A; /* PURPLE */
+        color: #FFF;
+        border-radius: 12px;
+      }
+
+      .weeks-ru {
+        text-align: center;
+      }
+
+      /* .weeks-teams {
+        font-weight: 300;
+      } */
+
+      .weeks-month {
+        font-size: 1.1vh;
+      }
+
+      .weeks-dates, .weeks-teams, .weeks-campaign-count {
+        font-size: 1.4vh;
+      }
+
+      .pill {
+        background-color: #54559A; /* DARK GREEN */ /* #8793EF; /* #48C77A; /* PURPLE */
+        color: #FFF;
+        border-radius: 12px;
+      }
+
+      .pill-hover {
+        background-color: #EFA835; /* ORANGE */ /* #EA655A; /* DARK GREEN */ /* #8793EF; /* #48C77A; /* PURPLE */
+        color: #FFF;
+        border-radius: 12px;
+
+      }
+
+      /* .campaign-details { */
+        /* height: 5vh; */
+        /* margin: 0;
+        padding: 2% 0 0 2%; */
+        /* line-height: 0.7; */
+      /* } */
+
+      .campaign-title {
+        line-height: 1.25;
+        grid-column: 1 / -1;
+        margin: 0.2%;
+      }
+
+      .campaign-name, .campaign-vertical, .task-title, .task-version-title {
+        font-weight: 500;
+        font-size: 1.2em;
+      }
+
+      .campaign-vertical {
+        font-weight: 900;
+      }
+
+      /* .campaign-title {
+        font-size: 1.25em;
+        line-height: 1;
+      } */
+
+      .weeks-ru, .campaign-gantt, .task-gantt, .task-version-gantt {
+        grid-column: 2 / -1;
+
+        display: grid;
+        grid-template-columns: repeat(54, 1fr);
+        align-items: center;
+        /* align-content: space-evenly; */
+      }
+
+
+
+      .campaign-gantt {
+        height: 5vh;
+        align-items: center;
+        /* margin-bottom: 1%; */
+      }
+
+      .campaign-gantt span {
+        border-radius: 15px;
+        height: 50%;
+        position: relative;
+      }
+
+      .bar > .marker {
+        display: none;
+      }
+
+      .bar:hover > .marker {
+        display: block;
+        position: fixed;
+        height: 100%;
+        top: 0;
+        bottom: 0;
+        border-left: 1px solid #EFA835; /* ORANGE */
+        z-index: 5000000;
+        /* grid-column: 1 / -1; */
+        opacity: 0.5;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* .campaign-details:hover + .campaign-gantt span,
+      .task-details:hover + .task-gantt span,
+      .task-version-details:hover + .task-version-gantt span {
+        opacity: 0.45;
+
+        -webkit-transition: all 500ms ease-out 0.05s;
+        -moz-transition: all 500ms ease-out 0.05s;
+        -o-transition: all 500ms ease-out 0.05s;
+        transition: all 500ms ease-out 0.05s;
+      } */
+
+      .campaign {
+        box-shadow: 0px 3px 5px -3px rgba(25, 99, 121, 0.3);
+        padding-bottom: 1%;
+        border-radius: 0 12px 12px 0;
+      }
+
+      /* .tasks-container::before {
+        content: '';
+        border-left: 3px solid #34495E;
+        left: -2vw;
+      } */
+
+      /* .task-details, .task-version-details {
+       position: relative;
+       padding-left: 1vw;
+      } */
+
+/*
+      .campaign-name, .task-name {
+        margin: 1vh 0;
+      } */
+
+      /* .task-progress, .task-version-progress { */
+        /* position: absolute; */
+        /* color: #FFF; */
+        /* border-radius: 50%; */
+        /* height: 0.5vw; */
+        /* width: 0.5vw; */
+        /* font-size: 0.75vw; /* CHANGE */
+        /* line-height: 0.5vw; */
+        /* top: -0.25vw; */
+        /* top: -0.55vw; */
+        /* left: -4%; */
+        /* text-align: center; */
+        /* border: 3px solid #FFF; */
+        /* padding: 0.3vw; */
+        /* font-weight: 700; */
+      /* } */
+
+
+
+
+  .campaign-date, .task-date, .task-version-date {
+    font-weight: 500;
+    font-size: 1em;
+  }
+
+/* Comments & Links */
+/* .comment, .link {
+  padding-right: 10%;
+} */
+
+/* Task Comments */
+
+  /* Icons */
+
+  /* .material-icons {
+    line-height: 0;
+  } */
+
+  .material-icons {
+    color: #CADADA; /* SUPER LIGHT GREEN */
+    font-size: 1.5em;
+  }
+
+  .edit-campaign:hover,
+  /* .edit-comment:hover, */
+  /* .edit-link:hover, */
+  /* .edit-link-main:hover, */
+  .clone-campaign:hover,
+  .add-task:hover,
+  /* .edit-task-version:hover, */
+  /* .add-comment:hover, */
+  /* .add-link:hover, */
+  .edit-task-comment:hover,
+  .close-task-comment:hover {
+    color: #54559A; /* #000; /* #48C77A; /* GREEN */
+  }
+
+  /* Task Form */
+
+  .form-backdrop {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: #555C68;
+    z-index: 7000000;
+    opacity: 0.4;
+  }
+
+  .modal-form {
+    background-color: #FFF;
+    padding: 3% 4%;
+    width: 30%;
+    /* height: 100%; */
+    position: fixed;
+    top: 8vw;
+    right: 10vw;
+    z-index: 8000000;
+    box-shadow: 3px 3px 20px -3px rgba(25, 99, 121, 0.3);
+    border-radius: 15px;
+
+    height: 65%;
+    overflow-y: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE 10+ */
+  }
+
+  .form-title {
+    /* position: absolute;
+    width: 93%;
+    top: 0;
+    left: 0; */
+    /* padding: 2% 2% 2% 5%; */
+
+    /* background-color: #8793EF; */
+    color: #000;
+    font-weight: 700;
+    font-size: 1.5vw;
+    margin: 0 0 10% 0;
+    /* border-radius: 5px 5px 0 0;
+    background-image: linear-gradient(45deg, #3DBE73, #67D693);  */
+
+  }
+
+  .custom-dropdown, .custom-input, .custom-checkbox {
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+
+    /* border-bottom: 2px solid #F7F7F7; */
+    margin: 4% 0;
+    width: 100%;
+  }
+
+  .label {
+    grid-column: 1 / span 1;
+    margin: 0;
+    font-weight: 500;
+    color: #000; /* #48C77A; */
+    font-size: 0.85vw;
+  }
+/*
+  .custom-dropdown .label {
+    font-size: 80%;
+    margin: 0;
+  } */
+
+  .buttons {
+    font-size: 1.2vw;
+    float: right;
+  }
+
+  .buttons .material-icons {
+    line-height: 1;
+    color: #CADADA;
+    /* margin: 1%; */
+  }
+
+  .buttons .material-icons:hover {
+    color: #54559A /* 48C77A; */
+  }
+
+  /* .task-form-container .buttons .material-icons:hover {
+    color: #48C77A;
+  } */
+
+  /* input[type="submit"] {
+    border: none;
+    background-color: #48C77A;
+    padding: 0.75vh 1.2vh;
+    margin: 0.5vh 0.5vh;
+    border-radius: 12px;
+    display: inline-block;
+    color: #FFF;
+    font-size: 1.2vh;
+
+  }
+
+  input[type="submit"]:hover {
+    background-color: #48C77A;
+  } */
+
+  /* .task-form {
+    width: 100%;
+  } */
+
+
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  button:focus {
+      outline: none;
+  }
+
+  input, textarea {
+    padding: 0;
+    margin: 0;
+    font-size: 1vw;
+    border: none;
+    color: #48C77A; /* #6F1BA6; */
+    font-weight: 300;
+    width: 100%;
+  }
+
+  input::placeholder {
+    color: #CADADA;
+  }
+
+  .input-no-edit {
+    left: 5%;
+    width: 95%;
+    font-size: 1vw;
+    font-weight: 300;
+    border: none;
+    grid-column: 2 / -1;
+    padding: 0;
+    margin: 0;
+    padding-bottom: 3%;
+    position: relative;
+  }
+
+  .input-no-edit input {
+    color: #000;
+  }
+
+  .input, .selected, .custom-checkbox-list {
+      /* border: none; */
+      /* border-bottom: 2px solid #F7F7F7; */
+      /* background-color: #F7F7F7; /* LIGHT GREY */
+      /* border-radius: 5px; */
+      /* display: block; */
+      left: 5%;
+      width: 95%;
+      font-size: 1vw;
+      font-weight: 300;
+      border-bottom: 1px solid #EEE;
+      grid-column: 2 / -1;
+      padding: 0;
+      margin: 0;
+      padding-bottom: 3%;
+      position: relative;
+      color: #48C77A; /* #6F1BA6; */
+  }
+
+  .textarea {
+    width: 100%;
+    font-size: 1vw;
+    font-weight: 300;
+    border-bottom: 1px solid #EEE;
+    grid-column: 2 / -1;
+    padding: 0;
+    margin: 0;
+    padding-bottom: 3%;
+    position: relative;
+    color: #48C77A; /* #6F1BA6; */
+  }
+
+  .custom-checkbox-list {
+    color: #CADADA;
+  }
+
+  /* DO NOT ADD THE BELOW */
+    .input:hover,
+    .textarea:hover,
+    .selected:hover,
+    /* textarea:hover, */
+    .custom-checkbox-list:hover {
+      border-bottom: 1px solid transparent;
+    }
+
+
+  .input:after,
+  .textarea:after,
+  .selected:after,
+  /* textarea:after, */
+  .custom-checkbox-list:after {
+    position: absolute;
+    content: '';
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    /* border-image: linear-gradient(-90deg, #54559A, #8363F0) 30; */
+    border-bottom: 2px solid #48C77A;
+
+    -webkit-transform: scaleX(0.0001);
+    -ms-transform: scaleX(0.0001);
+    transform: scaleX(0.0001);
+
+    -webkit-transition: -webkit-transform 250ms ease-in-out;
+    transition: transform 250ms ease-in-out;
+    transform-origin: left;
+
+    z-index: -1000;
+  }
+
+
+  .input:hover:after,
+  .textarea:hover:after,
+  .selected:hover:after,
+  /* textarea:hover:after, */
+  .custom-checkbox-list:hover:after {
+
+    -webkit-transform: scaleX(1);
+    -ms-transform: scaleX(1);
+    transform: scaleX(1);
+  }
+
+
+
+
+/* INPUT Styles */
+
+.icon-remove-version {
+    /* position: absolute; */
+    /* margin-left: 3%; */
+    margin-bottom: 2%;
+    float: right;
+    font-weight: 500;
+    font-size: 1.8vw;
+    /* right: 0.5vw; */
+    /* top: -1vh; */
+    z-index: 13000000;
+  }
+
+/* Checkbox */
+
+  /* .campaign-info .material-icons {
+    display: inline-block;
+    vertical-align: middle;
+  } */
+
+  .campaign-form-countries, .campaign-form-platform {
+    width: 10%;
+    text-align: center;
+    padding: 1% 2%;
+
+    /* -webkit-transition: all 250ms ease-out 0.2s;
+    -moz-transition: all 250ms ease-out 0.2s;
+    -o-transition: all 250ms ease-out 0.2s;
+    transition: all 250ms ease-out 0.2s; */
+  }
+
+  /* .campaign-form-countries:hover, .campaign-form-platform:hover {
+    font-size: 1.2em;
+
+    -webkit-transition: all 250ms ease-out 0.05s;
+    -moz-transition: all 250ms ease-out 0.05s;
+    -o-transition: all 250ms ease-out 0.05s;
+    transition: all 250ms ease-out 0.05s;
+  } */
+
+  .custom-checked {
+    color: #48C77A; /* ; #54559A #6F1BA6*/
+    font-weight: 500;
+
+  }
+
+/* input[type="checkbox"] {
+  background-color: #48C77A;
+} */
+
+/* DROPDOWN Styles */
+
+.custom-dropdown {
+  /* padding-left: 2%;
+  width: 87%; */
+  position: relative;
+}
+
+/* .custom-dropdown .label {
+  font-weight: 500;
+  color: #48C77A;
+  font-size: 0.8em;
+  padding: 0 0 0 0.5%;
+  margin: 0.5% 0 0 0;
+} */
+
+/* .custom-dropdown .selected {
+  display: inline-block;
+  padding-left: 32%;
+} */
+
+
+.custom-dropdown-list {
+  grid-column: 2 / -1;
+  position: absolute;
+  z-index: 14000000;
+  left: 20%;
+  top: 100%;
+  width: 70%;
+  color: #000;
+  height: 30vh;
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+
+ul {
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  border-radius: 5px;
+}
+
+li {
+  padding: 5%;
+  background-color: #FFF;
+  border-bottom: 1px solid #EEE;
+  width: 70%;
+  box-shadow: 3px 3px 5px 0px rgba(25, 99, 121, 0.2);
+}
+
+li:last-child {
+  border: none;
+  border-radius: 0 0 5px 5px;
+}
+
+/* .selected {
+  border: none;
+  background-color: inherit;
+} */
+
+a {
+  text-decoration: none;
+  color: #6F1BA6; /* PURPLE 8363F0 54559A */
+  font-weight: 400;
+  background-color: #FFF;
+  /* display: block; */
+}
+
+h4 {
+  padding: 0;
+  margin: 3% 0 1% 0;
+}
+
+/* .custom-dropdown .material-icons {
+  line-height: 1;
+  font-size: 1vw;
+  margin: 0% 8% 0% 3%;
+  vertical-align: middle;
+} */
+
+.custom-dropdown .material-icons:not(.progress) {
+  font-size: 1.2em;
+  color: #48C77A;
+  line-height:0;
+  margin: 0% 8% 0% 3%;
+  vertical-align: middle;
+}
+
+.select-list-hover, .select-list {
+  padding-left: 5%;
+  background-color: #F7F7F7;
+
+  -webkit-transition: all 150ms ease-out 0.05s;
+  -moz-transition: all 150ms ease-out 0.05s;
+  -o-transition: all 150ms ease-out 0.05s;
+  transition: all 150ms ease-out 0.05s;
+}
+
+.select-list-hover a, .select-list a {
+  background-color: #F7F7F7;
+}
+
+
+
+.select-list-hover:hover, .select-list:hover {
+  color: #48C77A;
+  padding-left: 10%;
+
+  -webkit-transition: all 150ms ease-out 0.05s;
+  -moz-transition: all 150ms ease-out 0.05s;
+  -o-transition: all 150ms ease-out 0.05s;
+  transition: all 150ms ease-out 0.05s;
+
+}
+
+
+
+/* TEXTAREA */
+
+textarea {
+  resize:vertical;
+  min-height: 5vh;
+}
+
+.comment-details {
+  font-weight: 300;
+  margin-bottom: 3%;
+}
+
+/* .link input {
+  min-height: 3.5vh;
+} */
+
+
+/* COMMENT */
+.comment, .link {
+  position: relative;
+}
+
+
+/* .link {
+  background-color: #FFF;
+  border-radius: 5px;
+  padding: 0;
+  margin: 2% 0% 2% 1%;
+  line-height: 1.5;
+} */
+
+/* .link input {
+  margin: 0;
+  width: 60%;
+} */
+
+.campaign-label {
+  margin-bottom: 7%;
+}
+
+
+
+/* TOOLTIP */
+/* .ui-tooltip {
+  z-index: 10000000;
+  background-color: #000;
+  opacity: 0.7;
+  color: #FFF;
+} */
+
+
+/* select {
+  border: none;
+  background-color: #F7F7F7; /* LIGHT GREY
+  font-size: 1em;
+  font-weight: 300;
+  width: 90%;
+  -webkit-appearance: button; /* hide default arrow in chrome OSX
+} */
+
+/* .custom-dropdown::after { /*  Custom dropdown arrow
+  content: "\25BC";
+  height: 1em;
+  font-size: .625em;
+  color: #48C77A;
+} */
+
+
+/* DATE */
+/* input[type="date"] {
+  font-family: "Roboto", sans-serif;
+} */
+
+.ui-datepicker,
+.ui-widget {
+  /* background-color: #48C77A; */
+  background-color: #F7F7F7;
+  top: 0;
+  right: 0;
+  padding: 1% 2%;
+  width: 20%;
+  /* color: #FFF; */
+  color: #000;
+  font-size: 0.75em;
+  font-weight: 300;
+  border-radius: 5px;
+  box-shadow: 10px 10px 20px 0px rgba(25, 99, 121, 0.1);
+  left: 100%;
+  justify-content: center;
+  /* background-image: linear-gradient(90deg, #3DBE73, #67D693); /* GREEN GRADIENT */ */
+  opacity: 0.7;
+}
+
+.ui-datepicker a {
+  background-color: #F7F7F7;
+}
+
+.ui-datepicker-calendar {
+  width: 100%;
+  text-align: center;
+}
+
+.ui-datepicker-header {
+  margin: 5% 0;
+}
+
+.ui-datepicker-prev, .ui-datepicker-next {
+  font-weight: 400;
+  /* color: #FFF; */
+  color: #48C77A;
+  border-radius: 12px;
+  padding: 2% 5%;
+  line-height: 1;
+  font-size: 0.75em;
+  /* background-color: #54559A; /* DARK GREEN */
+
+  -webkit-transition: all 250ms ease-out 0.05s;
+  -moz-transition: all 250ms ease-out 0.05s;
+  -o-transition: all 250ms ease-out 0.05s;
+  transition: all 250ms ease-out 0.05s;
+}
+
+.ui-datepicker-next {
+  margin-left: 62%;
+}
+
+.ui-datepicker-prev:hover, .ui-datepicker-next:hover {
+  background-color: #48C77A;
+  color: #FFF;
+  border-radius: 12px;
+
+  -webkit-transition: all 250ms ease-out 0.05s;
+  -moz-transition: all 250ms ease-out 0.05s;
+  -o-transition: all 250ms ease-out 0.05s;
+  transition: all 250ms ease-out 0.05s;
+}
+
+.ui-datepicker-calendar td {
+  padding: 3% 0%;
+}
+
+.ui-state-default {
+  -webkit-transition: all 250ms ease-out 0.05s;
+  -moz-transition: all 250ms ease-out 0.05s;
+  -o-transition: all 250ms ease-out 0.05s;
+  transition: all 250ms ease-out 0.05s;
+}
+
+
+.ui-state-default:hover {
+  font-weight: 500;
+  /* color: #54559A; /* DARK GREEN */
+  color: #48C77A;
+  border-radius: 12px;
+  font-size: 2em;
+
+  -webkit-transition: all 250ms ease-out 0.05s;
+  -moz-transition: all 250ms ease-out 0.05s;
+  -o-transition: all 250ms ease-out 0.05s;
+  transition: all 250ms ease-out 0.05s;
+
+}
+
+.ui-datepicker-title {
+  margin: 5%;
+  text-align: center;
+  font-size: 2em;
+  font-weight: 100;
+}
+
+#ui-datepicker-div {
+  display: none;
+}
+
+
+/* Version */
+.version {
+  position: relative;
+  margin-top: 12%;
+}
+
+.version * , .version .label, .version .material-icons {
+  color: #9FC2AF; /* GREYISH-GREEN */
+}
+
+/* .task-version-count:hover {
+  /* color: #48C77A; /* #000; */
+/* } */
+
+
+  /* put this after the actual material-icons */
+/*
+  .task-version-circle {
+    font-size: 2em;
+    margin: 0;
+    position: relative;
+  }
+
+  .task-version-circle .task-version-count {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #000;
+    font-weight: 500;
+    font-size: 2em;
+  } */
+
+
+
+
+/* .task-version-gantt .bar {
+  position: relative;
+  background-color: #9FC2AF;
+} */
+
+/* .task-version-progress * {
+  background-color: #9FC2AF;
+} */
+
+/* .task-version-gantt .bar {
+  background-color: #9FC2AF;
+  opacity: 0.7;
+} */
+
+
+.task-info-comments {
+  position: absolute;
+  top: 50%;
+  left: 200%;
+  width: 20vw;
+  z-index: 3000000;
+  background-color: #F7F7F7;
+  color: #000;
+  /* opacity: 0.85; */
+  padding: 10% 15%;
+  border-radius: 5px;
+  line-height: 1.2;
+  font-size: 1.1em;
+  font-weight: 300;
+  height: 30vh;
+  box-shadow: 10px 5px 30px 0px rgba(25, 99, 121, 0.2);
+  /* overflow-y: auto; */
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+
+}
+
+
+.task .material-icons {
+  font-size: 1.3em;
+}
+
+.task-info-comments::-webkit-scrollbar { /* WebKit */
+  width: 0;
+  height: 0;
+}
+
+.close-task-comment {
+  position: absolute;
+  top: 5%;
+  right: 5%;
+}
+
+.task-info-comments .close-task-comment {
+  font-size: 1.75em;
+}
+
+/* For FX */
+
+
+
+/* input:focus,
+textarea:focus,
+/* .form-field-focus {
+
+  -webkit-transition: background-color 500ms ease-out 0.05s;
+  -moz-transition: background-color 500ms ease-out 0.05s;
+  -o-transition: background-color 500ms ease-out 0.05s;
+  transition: background-color 500ms ease-out 0.05s;
+
+} */
+
+/* .campaign-form-container input:focus,
+.campaign-form-container textarea:focus,
+.campaign-form-container, */
+/* .campaign-form-container .form-field-focus { */
+
+/*   background-color: #4CBA86; /* DARK GREEN
+  color: #FFF;
+} */
+
+  /* .task-form-container input:focus,
+  .task-form-container textarea:focus,
+  .task-form-container  */
+/* .task-form-container .form-field-focus {
+
+    background-color: #48C77A;
+    color: #FFF;
+  } */
+
+.material-icons.arrow {
+  font-size: 2em;
+  color: #48C77A;
+  /* line-height:0 */
+}
+
+  /* Tasks */
+
+        /* .task-title {
+          position: relative;
+          display: inline-block;
+        } */
+
+        .task {
+          font-weight: 400;
+
+          display: grid;
+          grid-template-columns: 1fr 5fr;
+          align-items: center;
+          align-content: end;
+          /* position: relative; */
+        }
+
+        .task-gantt, .task-version-gantt {
+          /* height: 10vh;
+          margin-bottom: 1%; */
+          margin: 0.75% 0;
+          padding: 0;
+          /* line-height: 1; */
+          /* height: 100%; */
+        }
+
+        .task-gantt div, .task-version-gantt div {
+          border-radius: 15px;
+          margin: 0 0 0.75% 0;
+          /* height: 10%; */
+        }
+
+        .task-gantt .bar, .task-version-gantt .bar {
+          height: 1.75vh;
+          padding: 0;
+        }
+
+
+        .tasks-container {
+          padding: 0;
+          margin: 0;
+        }
+
+        .task, .task-version {
+          border-bottom: 1px solid #EEE;
+          border-left: 3px solid #EEE; /* #34495E; /* DEEP BLUE */
+          margin: 0;
+        }
+
+        .task-version .others,  .task-version .task-version-gantt {
+          opacity: 0.45;
+        }
+
+        .task-version .material-icons {
+          opacity: 1;
+          color: #CADADA;
+        }
+
+        /* .task, .task-version {
+          line-height: 0.55;
+        } */
+
+        .task-details, .task-version-details {
+          font-size: 95%;
+        }
+
+        .task-details-add {
+          /* font-size: 95.85%; */
+          position: relative;
+          background-color: #F9F9F9; /* #FAFBFE; */
+          height: 100%;
+          font-weight: 100;
+
+          display: grid;
+          grid-template-columns: 4fr 1fr;
+          grid-auto-rows: minmax(1fr, auto);
+          align-content: space-evenly;
+
+        }
+
+        /* .version .task-details-add {
+          height: 150%;
+          background-color: #F7F7F7;
+        } */
+
+        /* .task-title {
+          margin: 1% 0 0 0;
+        } */
+
+        .task-date {
+          margin: 0.25% 0 0 0;
+          font-weight: 400;
+        }
+
+        .task-comment-date, .comment-date {
+          font-weight: 300;
+          font-size: 0.85em;
+        }
+
+        .task-details-add .others {
+          padding: 0;
+          margin-top: auto;
+          margin-bottom: auto;
+          margin-left: 5%;
+
+          grid-column: 1 / span 1;
+        }
+
+        .task-details-add .material-icons {
+          display: inline-block;
+          vertical-align: middle;
+
+        }
+
+        .task-details-add .tag {
+          color: #000;
+          font-size: 1.2em;
+        }
+
+        .others:hover .tag-version {
+          color: #54559A; /* #000; */
+          font-size: 1.2em;
+        }
+
+        .tag-version {
+          color: #CADADA;
+          font-size: 1.2em;
+        }
+
+
+        .task-icons {
+          display: none;
+        }
+
+        .task:hover .task-icons,
+        .task-version:hover .task-icons {
+          display: inline-block;
+
+          position: absolute;
+          top: 0;
+          right: 0;
+          height: 100%;
+          width: 100%;
+          background-color: #EEE; /* #FAFBFE; */
+
+          grid-column: 2 / span 1;
+
+          display: grid;
+          grid-template-rows: repeat(3, 1fr);
+          align-items: center;
+          justify-content: center;
+          padding: 1%;
+        }
+
+        .task-icons .material-icons {
+          font-size: 1.45em;
+          /* margin: 10%; */
+
+          /* top: 0; */
+          /* line-height: 1; */
+
+          grid-column: 1 / span 1;
+        }
+
+
+        /* Tasks Forms */
+        .form-notes {
+          font-size: 1vw;
+          font-weight: 100;
+          margin: 5% 0;
+          color: #888;
+        }
+
+
+
+
+
+
+
+  /* PROGRESS COLORS */
+
+      .on-track-circle {
+        background-color: #54CDAC; /* GREEN */
+      }
+
+      .on-track-text, .on-track:hover {
+        color: #54CDAC; /* GREEN */
+
+        -webkit-transition: all 150ms ease-out 0.05s;
+        -moz-transition: all 150ms ease-out 0.05s;
+        -o-transition: all 150ms ease-out 0.05s;
+        transition: all 150ms ease-out 0.05s;
+      }
+
+
+
+      .potential-delay-circle {
+        background-color: #F1C471; /* YELLOW */
+      }
+
+      .potential-delay-text, .potential-delay:hover {
+        color: #F1C471; /* YELLOW */
+
+        -webkit-transition: all 150ms ease-out 0.05s;
+        -moz-transition: all 150ms ease-out 0.05s;
+        -o-transition: all 150ms ease-out 0.05s;
+        transition: all 150ms ease-out 0.05s;
+      }
+
+      .delay-circle {
+        background-color: #E66662; /* RED */
+      }
+
+      .delay-text, .delay:hover {
+        color: #E66662; /* RED */
+
+        -webkit-transition: all 150ms ease-out 0.05s;
+        -moz-transition: all 150ms ease-out 0.05s;
+        -o-transition: all 150ms ease-out 0.05s;
+        transition: all 150ms ease-out 0.05s;
+      }
+
+
+      .complete-circle {
+        background-color: #CADADA; /* LIGHT GREY GREEN */ /* #62C3CB; /* BLUE */
+      }
+
+      .cancel-circle {
+        background-color: #FFF; /* LIGHT GREY GREEN */ /* #62C3CB; /* BLUE */
+        border: 1px solid #CADADA;
+        box-sizing: border-box;
+      }
+
+    /*  .task-version-gantt .cancel-circle { */
+        /* background-color: #FFF; /* LIGHT GREY GREEN */ /* #62C3CB; /* BLUE */
+        /* border: 1px solid #9FC2AF; /* GREYISH GREEN */
+      /* } */
+
+      .complete-text, .complete:hover {
+        color: #CADADA; /* LIGHT GREY GREEN */ /* #62C3CB; /* BLUE */
+
+        /* -webkit-transition: all 150ms ease-out 0.05s;
+        -moz-transition: all 150ms ease-out 0.05s;
+        -o-transition: all 150ms ease-out 0.05s;
+        transition: all 150ms ease-out 0.05s; */
+      }
+
+      /* .version-circle {
+        background-color: #9FC2AF; /* GREYISH GREEN
+      } */
+
+      /* .label-click {
+        color: #FFF;
+      } */
+
+
+      /* ::-webkit-scrollbar-thumb {
+        background: #F7F7F7;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #FFF;
+      }
+ */
+
+ ::-webkit-scrollbar {
+    display: none;
+}
+
+
+    </style>
+
+  </head>
+  <body>
+
+    <div class="timelines">
+      <div class="backdrop"></div>
+      <div class="backdrop-background"></div>
+
+      <div class="weeks-container">
+
+      <div class="nav">
+        <div class="custom-menu-bar">
+            <div class="bar1"></div>
+            <div class="bar1"></div>
+            <div class="bar1"></div>
+        </div>
+
+        <div class="custom-menu hide">
+
+          <!-- {% load static %}
+          <img src="{% static 'timelines/profile-icon.png' %}" alt="Menu"/> -->
+
+          <ul class="custom-menu-list">
+            <li class="menu-select"><a href="{% url 'home' %}">ALL CAMPAIGNS</a></li>
+            <li class="menu-group">VERTICAL</li>
+            <li class="menu-select"><a href="{% url 'pax' %}">PAX</a></li>
+            <li class="menu-select"><a href="{% url 'dax' %}">DAX</a></li>
+            <li class="menu-select"><a href="{% url 'food' %}">FOOD</a></li>
+            <li class="menu-select"><a href="{% url 'financial' %}">FINANCIAL</a></li>
+            <li class="menu-select"><a href="{% url 'ventures' %}">VENTURES</a></li>
+            <li class="menu-group">TYPE</li>
+            <li class="menu-select"><a href="{% url 'new' %}">NEW</a></li>
+            <li class="menu-select"><a href="{% url 'migration' %}">MIGRATION</a></li>
+            <li class="menu-select"><a href="{% url 'troubleshooting' %}">TROUBLESHOOTING</a></li>
+            <li class="menu-select"><a href="{% url 'template' %}">TEMPLATES</a></li>
+            <li class="menu-group">REPORTS</li>
+            <li class="menu-select"><a href="{% url 'ru-report' %}">RU</a></li>
+            <li class="menu-select"><a href="{% url 'tasks-report' %}">TASKS</a></li>
+            <li class="menu-select"><a href="{% url 'logout' %}">LOG OUT</a></li>
+          </ul>
+          <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+        </div>
+      </div>
+
+        <!-- WEEKS CONTAINER -->
+        <div class="week-container">
+
+          <div class="weeks-month">
+              <span class="weeks-title">MONTH</span>
+
+              <span class="weeks-ru">
+                {% for week in weeks %}
+                  <span>{{ week.start_date|date:"M"|upper }}</span>
+                {% endfor %}
+              </span>
+
+          </div>
+
+          <div class="weeks-dates">
+              <span class="weeks-title">DATE</span>
+
+              <span class="weeks-ru">
+                {% for week in weeks %}
+                  {% if week.today %}
+                  <span class="week-day pill" id="{{ week.id }}" value="{{ week.no }}">{{ week.start_date|date:"d" }}
+                    <div class="week-data"
+                      data-no="{{ week.no }}"
+                      data-start="{{ week.start_date|date:'M d Y' }}"
+                      data-end="{{ week.end_date|date:'M d Y' }}"
+                      data-id="{{ week.id }}"
+                      data-commenter="{{ week.last_edited_by }}"
+                      data-comment="{{ week.comment }}"
+                      data-ops="{{ week.ops_capacity }}"
+                      data-agency="{{ week.agency_capacity }}"
+                      data-analytics="{{ week.analytics_capacity }}">
+                    </div>
+                    <i class="week-edit material-icons">mode_edit</i>
+                  </span>
+
+                  {% else %}
+                  <span class="week-day" id="{{ week.id }}" value="{{ week.no }}">{{ week.start_date|date:"d" }}
+                    <div class="week-data"
+                      data-no="{{ week.no }}"
+                      data-start="{{ week.start_date|date:'M d Y' }}"
+                      data-end="{{ week.end_date|date:'M d Y' }}"
+                      data-id="{{ week.id }}"
+                      data-commenter="{{ week.last_edited_by }}"
+                      data-comment="{{ week.comment }}"
+                      data-ops="{{ week.ops_capacity }}"
+                      data-agency="{{ week.agency_capacity }}"
+                      data-analytics="{{ week.analytics_capacity }}">
+                    </div>
+                    <i class="week-edit material-icons">mode_edit</i>
+                  </span>
+                  {% endif %}
+
+                {% endfor %}
+              </span>
+
+          </div>
+
+          <!-- <div class="weeks-marker">
+              <span class="weeks-ru">
+                {% for week in weeks_ops %}
+                  {% if week.today %}
+                  <span class="marker" style="grid-column: {{ week.no }} / span 1"></span>
+                  {% else %}
+                  <span></span>
+                  {% endif %}
+                {% endfor %}
+              </span>
+          </div> -->
+
+          <div class="weeks-teams">
+              <span class="weeks-title">OPS RU%</span>
+
+              <span class="weeks-ru">
+                {% for week in weeks %}
+                  <span>{{ week.ops_ru|floatformat:0 }}</span>
+                {% endfor %}
+              </span>
+
+          </div>
+
+          <div class="weeks-teams">
+              <span class="weeks-title">ECLERX RU%</span>
+
+              <span class="weeks-ru">
+                {% for week in weeks %}
+                  <span>{{ week.agency_ru|floatformat:0 }}</span>
+                {% endfor %}
+              </span>
+
+          </div>
+
+          <div class="weeks-teams">
+              <span class="weeks-title">ANALYTICS RU%</span>
+
+              <span class="weeks-ru">
+                {% for week in weeks %}
+                  <span>{{ week.analytics_ru|floatformat:0 }}</span>
+                {% endfor %}
+              </span>
+
+          </div>
+
+          <div class="weeks-campaign-count">
+              <span class="weeks-title"># CAMPAIGNS</span>
+
+              <span class="weeks-ru">
+                {% for week in weeks %}
+                  <span>{{ week.no_campaign }}</span>
+                {% endfor %}
+              </span>
+
+          </div>
+
+        </div>
+        <!-- WEEKS CONTAINER -->
+
+        </div>
+
+        <!-- CAMPAIGNS CONTAINER -->
+        <div class="campaigns-container">
+
+          {% for campaign in campaigns %}
+
+            <!-- CAMPAIGN CONTAINER -->
+            <div class="campaign-container" id="{{ campaign.id }}">
+              <div class="campaign-data hide"
+                data-name="{{ campaign.name }}"
+                data-vertical="{{ campaign.vertical }}"
+                data-vertical-id="{{ campaign.vertical.id }}"
+                data-type="{{ campaign.type }}"
+                data-type-id="{{ campaign.type.id }}"
+                data-progress="{{ campaign.progress }}"
+                data-progress-id="{{ campaign.progress.id }}"
+                data-start="{{ campaign.start|date:'Y-m-d' }}"
+                data-end="{{ campaign.end|date:'Y-m-d' }}"
+                data-countries="{{ campaign.countries }}">
+              </div>
+
+              <!-- CAMPAIGN -->
+              <div class="campaign">
+
+                <div class="campaign-details">
+                  <span class="campaign-date {{ campaign.progress.progress_text }}">
+                    <span class="campaign-start">{{ campaign.start|date:'M d' }}</span> - <span class="campaign-end">{{ campaign.end|date:'M d' }} &nbsp</span>
+                      <!-- <i class="material-icons edit-campaign" title="Edit Campaign">mode_edit</i> -->
+                      <!-- <i class="material-icons clone-campaign" title="Clone Campaign">file_copy</i> -->
+                      <!-- <i class="material-icons add-task" title="Create New Task">add_circle</i> -->
+                    </span>
+                  <p class="campaign-title"><span class="campaign-vertical">{{ campaign.vertical }}</span> | <span class="campaign-name" title="{{ campaign.name }}">{{ campaign.name|truncatechars:50 }}</span></p>
+                  <p><span class="campaign-type">({{ campaign.type }})</span>&nbsp<span class="campaign-countries">{{ campaign.countries }}</span></p>
+                </div>
+
+                <div class="campaign-gantt" id="{{ campaign.id }}">
+                  <span class="bar {{ campaign.progress.progress_icon }}" data-week-start="{{ campaign.bar_start }}" data-week-end="{{ campaign.bar_end }}" style="grid-column: {{ campaign.bar_start }} / {{ campaign.bar_end }};">
+                      <span class="marker"></span>
+                  </span>
+                </div>
+
+              </div>
+              <!-- CAMPAIGN -->
+
+
+
+            <!-- TASKS CONTAINER -->
+            <div class="tasks-container hide">
+
+              <h4>CAMPAIGN INFORMATION</h4>
+              <!-- CAMPAIGN INFO -->
+              <div class="campaign-info">
+
+                <div class="campaign-info-main">
+                  <div class="campaign-info-data hide"
+                    data-phase="{{ campaign.phase }}"
+                    data-complexity="{{ campaign.complexity }}" data-complexity-id="{{ campaign.complexity.id }}"
+                    data-platform="{{ campaign.platform }}"
+                    data-lcm-owner="{{ campaign.lcm_owner }}" data-lcm-owner-id="{{ campaign.lcm_owner.id }}"
+                    data-ops-owner="{{ campaign.ops_owner }}" data-ops-owner-id="{{ campaign.ops_owner.id }}"
+                    data-analytics-owner="{{ campaign.analytics_owner }}" data-analytics-owner-id="{{ campaign.analytics_owner.id }}">
+                  </div>
+
+                  <p class="more-details campaign-label">BACKGROUND &nbsp<i class="material-icons edit-campaign-info label-info" title="Edit Campaign Info">mode_edit</i></p>
+                  <p class="campaign-more-details">PHASE <span class="campaign-phase" value="{{ campaign.phase }}">{{ campaign.phase }}</span></p>
+                  <p class="campaign-more-details">COMPLEXITY <span class="campaign-complexity" value="{{ campaign.complexity }}">{{ campaign.complexity }}</span></p>
+                  <p class="campaign-more-details">PLATFORM <span class="campaign-platform" value="{{ campaign.platform }}">{{ campaign.platform }}</span></p>
+
+                  <p class="campaign-more-details">LCM OWNER <span class="campaign-lcm-owner" value="{{ campaign.lcm_owner }}">{{ campaign.lcm_owner }}</span></p>
+                  <p class="campaign-more-details">OPS OWNER <span class="campaign-ops-owner" value="{{ campaign.ops_owner }}">{{ campaign.ops_owner }}</span></p>
+                  <p class="campaign-more-details">ANALYTICS OWNER <span class="campaign-analytics-owner" value="{{ campaign.analytics_owner }}">{{ campaign.analytics_owner }}</span></p>
+                </div>
+
+                <div class="campaign-info-main">
+                  <div class="campaign-capacity-data hide"
+                    data-ops-hours="{{ campaign.ops_hours }}"
+                    data-agency-hours="{{ campaign.agency_hours }}"
+                    data-analytics-hours="{{ campaign.analytics_hours }}">
+                  </div>
+
+                  <p class="more-details campaign-label">RESOURCE UTILIZATION &nbsp<i class="material-icons edit-campaign-capacity label-info" title="Edit Campaign RUs">mode_edit</i></p>
+                  <p class="campaign-more-details" title="Total no. of Ops manhours required for this campaign.">OPS HOURS <span class="campaign-ops-hours" value="{{ campaign.ops_hours }}">{{ campaign.ops_hours|floatformat:1 }}</span></p>
+                  <p class="campaign-more-details" title="Total no. of eClerx manhours required for this campaign.">ECLERX HOURS <span class="campaign-agency-hours" value="{{ campaign.agency_hours }}">{{ campaign.agency_hours|floatformat:1 }}</span></p>
+                  <p class="campaign-more-details" title="Total no. of Analytics manhours required for this campaign.">ANALYTICS HOURS <span class="campaign-analytics-hours" value="{{ campaign.analytics_hours }}">{{ campaign.analytics_hours|floatformat:1 }}</span></p>
+                </div>
+
+                <div class="campaign-info-main">
+                  <div class="campaign-quantifiers-data hide"
+                    data-no-channels="{{ campaign.no_channels }}"
+                    data-no-comms="{{ campaign.no_comms }}"
+
+                    data-no-languages="{{ campaign.no_languages }}"
+                    data-no-dynamics-fields="{{ campaign.no_dynamic_fields }}"
+                    data-no-query-attr="{{ campaign.no_query_attr }}">
+                  </div>
+
+                  <p class="more-details campaign-label">QUANTIFIERS &nbsp<i class="material-icons edit-campaign-quantifiers label-info" title="Edit Campaign Quantifiers">mode_edit</i></p>
+                  <p class="campaign-more-details"># CHANNELS <span class"campaign-no-channels" value="{{ campaign.no_channels }}">{{ campaign.no_channels }}</span></p>
+                  <p class="campaign-more-details" title="Total # comms across all channels"># COMMS <span class"campaign-no-comms" value="{{ campaign.no_comms }}">{{ campaign.no_comms }}</span></p>
+                  <p class="campaign-more-details"># COUNTRIES <span class"campaign-no-countries" value="{{ campaign.no_countries }}">{{ campaign.no_countries }}</span></p>
+                  <p class="campaign-more-details"># LANGUAGES <span class"campaign-no-languages" value="{{ campaign.no_languages }}">{{ campaign.no_languages }}</span></p>
+                  <p class="campaign-more-details"># DYNAMIC FIELDS <span class"campaign-no-dynamic" value="{{ campaign.no_dynamic_fields }}">{{ campaign.no_dynamic_fields }}</span></p>
+                  <p class="campaign-more-details"># NEW QUERY/ATTRIBUTES <span class"campaign-no-query" value="{{ campaign.no_query_attr }}">{{ campaign.no_query_attr }}</span></p>
+                </div>
+
+
+                <div class="campaign-info-comments">
+                  <p class="more-details campaign-label">COMMENTS &nbsp
+                    <i class="material-icons add-comment label-info" title="Add Comment">add_comment</i>
+                  </p>
+
+                    <div class="comments-container">
+                      {% for comment in campaign.comments.all %}
+                      <div class="comment" id="{{ comment.id }}">
+                        <div class="comment-data" data-comment-commenter="{{ comment.commenter }}"
+                          data-comment-date="{{ comment.timestamp_utc|date:'Y-m-d g:i A' }}"
+                          data-comment-comment="{{ comment.comment }}"></div>
+
+                        <p class="comment-title">
+                          <span class="commenter" value="{{ comment.commenter }}">{{ comment.commenter }}</span>,
+                          <span class="comment-date" value="{{ comment.timestamp_utc|date:'Y-m-d g:i A' }}">{{ comment.timestamp_utc|date:"Y-m-d g:i A" }}</span> &nbsp
+                          <i class="material-icons edit-comment">mode_edit</i>
+                        </p>
+                        <p class="comment-box">{{ comment.comment }}</p>
+                      </div>
+                      {% endfor %}
+                    </div>
+                    <!-- CAMPAIGN COMMENTS -->
+                </div> <!-- campaign-info-comments -->
+
+                <div class="campaign-info-links">
+                  <p class="more-details campaign-label">LINKS &nbsp<i class="material-icons add-link label-info" title="Add Link">insert_link</i></p>
+
+                  <p class="campaign-more-details link">
+                    <i class="material-icons edit-link-main jira">mode_edit</i> &nbsp
+                    <a href="{{ campaign.jira }}" target="_blank">JIRA</a>
+                  </p>
+
+                  <p class="campaign-more-details link">
+                    <i class="material-icons edit-link-main chart">mode_edit</i> &nbsp
+                    <a href="{{ campaign.chart }}" target="_blank">LUCIDCHART</a>
+                  </p>
+
+                  <p class="campaign-more-details link">
+                    <i class="material-icons edit-link-main perf">mode_edit</i> &nbsp
+                    <a href="{{ campaign.perf }}" target="_blank">PERFORMANCE</a>
+                  </p>
+
+                  <p class="campaign-more-details link">
+                    <i class="material-icons edit-link-main monitor">mode_edit</i> &nbsp
+                    <a href="{{ campaign.monitor }}" target="_blank">MONITORING</a>
+                  </p>
+
+                    <div class="links-container">
+                      {% for link in campaign.links.all %}
+                      <div>
+                        <p class="link" id="{{ link.id }}">
+                          <i class="material-icons edit-link">mode_edit</i> &nbsp
+                          <a href="{{ link.link }}" target="_blank">{{ link.name.upper }}</a>
+                        </p>
+                      </div>
+                      {% endfor %}
+                    </div>
+                    <!-- CAMPAIGN LINKS -->
+                </div> <!-- campaign-info-links -->
+
+
+              </div>
+              <!-- CAMPAIGN INFO -->
+
+
+          <h4>TASK TIMELINES</h4>
+
+          {% for task in campaign.tasks.all %}
+              <!-- TASK -->
+              <div class="task" id="{{ task.id }}">
+
+                <div class="task-data hide"
+                  data-id="{{ task.id }}"
+                  data-name="{{ task.name }}"
+                  data-category="{{ task.category }}"
+                  data-category-id="{{ task.category.id }}"
+                  data-progress="{{ task.progress }}"
+                  data-progress-id="{{ task.progress.id }}"
+                  data-start="{{ task.start|date:'Y-m-d' }}"
+                  data-end="{{ task.end|date:'Y-m-d' }}"
+                  data-owner="{{ task.owner }}"
+                  data-owner-id="{{ task.owner.id }}"
+                  data-dependency-id="{{ task.dependency.id }}"
+                  data-dependency="{{ task.dependency }}"
+                  data-version-count="{{ task.version_count }}"
+                  data-campaign-id="{{ campaign.id }}"
+                  data-campaign-start="{{ campaign.start|date:'Y-m-d' }}"
+                  data-campaign-end="{{ campaign.end|date:'Y-m-d' }}">
+                </div>
+
+              <div class="task-details-add">
+
+                <p class="others" title="Owner (Team)">
+                  <i class="material-icons tag">person</i>
+                  &nbsp<span class="task-owner" value="{{ task.owner }}">{{ task.owner }}</span>&nbsp<span class="task-owner-team" value="{{ task.owner.team }}">({{ task.owner.team }})</span>
+                </p>
+
+                <p class="others" title="Task category">
+                  <i class="material-icons tag">label</i>
+                  &nbsp<span class="task-category" value="{{ task.category }}">{{ task.category.name }}</span>
+                </p>
+
+                {% if task.version_count > 0 %}
+                <p class="others" title="Task versions (Click to toggle history)">
+                  <i class="material-icons tag-version task-version-count">history</i>
+
+                  &nbsp<span class="task-version-count" value="{{ task.version_count }}">{{ task.version_count }}
+                    {% if task.version_count <= 1 %} Change
+                    {% else %} Changes
+                    {% endif %}
+                  </span>
+                </p>
+                {% else %}
+                  <p class="others" style="visibility: hidden;">
+                      No changes
+                  </p>
+                {% endif %}
+
+                <span class="task-icons">
+                  <i class="material-icons edit-task" title="Edit Task">mode_edit</i>
+                  <i class="material-icons edit-task-adjust" title="Edit Task & Auto-Adjust Dates. Select this only if you want subsequent tasks' dates to be shifted with respect to the dates of this task.">calendar_today</i>
+                  <i class="material-icons add-task-comment" title="Add Task Comment">add_comment</i>
+                </span>
+
+
+                <div class="task-info-comments hide">
+
+                  <p class="task-comments">
+                    <span class="more-details">TASK COMMENTS</span>
+                    <i class="material-icons close-task-comment"  title="Close Task Comment">cancel</i>
+                  </p>
+
+                    <div class="task-comments-container">
+                      {% for task_comment in task.tasks_comments.all %}
+                        <!-- {% if task_comment %} -->
+                        <div class="task-comment" id="{{ task_comment.id }}">
+                        <div class="task-comment-data"
+                        data-task-comment-text="{{ task_comment.comment }}"
+                        data-task-comment-commenter="{{ task_comment.commenter }}"
+                        data-task-comment-date="{{ task_comment.timestamp_utc|date:'Y-m-d g:i A' }}"
+                        ></div>
+                          <p class="task-comment-title">
+                            <span class="task-commenter" value="{{ task_comment.commenter }}">{{ task_comment.commenter }}</span>,
+                            <span class="task-comment-date" value="{{ task_comment.timestamp_utc|date:'Y-m-d g:i A' }}">{{ task_comment.timestamp_utc|date:"Y-m-d g:i A" }}</span>
+                             &nbsp <i class="material-icons edit-task-comment" title="Edit Task Comment">mode_edit</i>
+                          </p>
+                          <p class="task-comment-box">{{ task_comment.comment }}</p>
+                        </div>
+
+                        <!-- {% else %}
+                        <div class="task-comment">
+                        <div class="task-comment-data"></div>
+                          <p>No comments ...</p>
+                        </div> -->
+
+                        <!-- {% endif %} -->
+                    {% endfor %} <!-- for task_comment in task.tasks_comments.all -->
+                    </div>
+                    <!-- TASK COMMENTS -->
+                </div> <!-- task-info-comments -->
+
+              </div> <!-- task-details-add -->
+
+                <div class="task-gantt">
+
+                  <div class="task-details" style="grid-column: {{ task.bar_start }} / -1;">
+
+                    <span class="task-title task-name" title="{{ task.name }}">{{ task.name|truncatechars:50 }}
+                      &nbsp
+
+                      {% if task.tasks_comments.all %}
+                          <i class="material-icons view-task-comment"  title="View Task Comment">mode_comment</i>
+                      {% endif %}  <!-- if task.tasks_comments.all -->
+
+                    </span>
+
+                    <!-- {% if task.version_count != 0 %}
+                      <i class="material-icons task-version-circle {{ task.progress.progress_text }}" title="Click to view task changes">fiber_manual_record
+                        <span class="task-version-count" value="{{ task.version_count }}">{{ task.version_count }}</span>
+                      </i>
+                    {% endif %} -->
+
+                    <p class="task-date {{ task.progress.progress_text }}"><span class="task-start" value="{{ task.start }}">{{ task.start|date:'M d' }}</span> - <span class="task-end" value="{{ task.end }}">{{ task.end|date:'M d' }}</span> &nbsp
+                    </p>
+
+                  </div> <!-- task-details -->
+
+                  <div class="bar {{ task.progress.progress_icon }}" data-week-start="{{ task.bar_start }}" data-week-end="{{ task.bar_end }}" style="grid-column: {{ task.bar_start }} / {{ task.bar_end }};" title="{{ task.progress.name }}">
+                    <span class="marker"></span>
+                  </div>
+
+
+                </div> <!-- task-gantt -->
+
+              </div>
+              <!-- TASK -->
+
+              {% for task_version in task.tasks_versions.all %}
+              <!-- TASK VERSION -->
+              <div class="task-version hide" id="{{ task_version.id }}">
+                <div class="task-version-data hide" data-task-id="{{ task.id }}" data-version-name="{{ task_version.name }}"
+                data-version-progress="{{ task_version.progress }}" data-version-progress-id="{{ task_version.progress.id }}" data-version-start="{{ task_version.start|date:'Y-m-d' }}" data-version-end="{{ task_version.end|date:'Y-m-d' }}"
+                data-version-owner="{{ task_version.owner }}" data-version-owner-id="{{ task_version.owner.id }}" data-version-dependency-id="{{ task_version.dependency.id }}" data-version-dependency="{{ task_version.dependency }}">
+                </div>
+
+              <div class="task-details-add">
+
+                <p class="others" title="Owner (Team)">
+                  <i class="material-icons tag">person</i>
+                  &nbsp<span class="task-version-owner" value="{{ task_version.owner }}">{{ task_version.owner }}</span>&nbsp<span class="task-version-owner-team" value="{{ task_version.owner.team }}">({{ task_version.owner.team }})</span>
+                </p>
+
+                <p class="others" title="Task category">
+                  <i class="material-icons tag">label</i>
+                  &nbsp<span class="task-version-category" value="{{ task.category }}">{{ task.category }}</span>
+                </p>
+
+                <p class="others" style="visibility: hidden;">
+                    No changes
+                </p>
+
+                <span class="task-icons">
+                  <i class="material-icons edit-task-version" title="Edit Task">mode_edit</i>
+                </span>
+
+              </div> <!-- task-details-add -->
+
+                <div class="task-version-gantt">
+
+                  <div class="task-version-details" style="grid-column: {{ task_version.bar_start }} / -1;">
+
+                    <span class="task-title task-version-name" title="{{ task_version.name }}">{{ task_version.name|truncatechars:50 }}
+                      &nbsp
+
+                    </span>
+
+                    <p class="task-version-date"><span class="task-version-start" value="{{ task_version.start }}">{{ task_version.start|date:'M d' }}</span> - <span class="task-version-end" value="{{ task_version.end }}">{{ task_version.end|date:'M d' }}</span> &nbsp
+                    </p>
+
+                  </div> <!-- task-details -->
+
+                  <div class="bar {{ task_version.progress.progress_icon }}" data-week-start="{{ task_version.bar_start }}" data-week-end="{{ task_version.bar_end }}" style="grid-column: {{ task_version.bar_start }} / {{ task_version.bar_end }};"  title="{{ task_version.progress.name }}">
+                    <span class="marker"></span>
+                  </div>
+
+                </div> <!-- task-version-gantt -->
+
+              </div>
+              <!-- TASK VERSION -->
+
+            {% endfor %} <!-- for task_version in task.tasks_versions.all -->
+
+          {% endfor %} <!-- for task in campaign.tasks.all -->
+
+          <div class="scroll"></div> <!-- to enhance scrolling experience -->
+          </div>
+          <!-- TASKS CONTAINER -->
+
+        </div>
+        <!-- CAMPAIGN CONTAINER -->
+      {% endfor %} <!-- for campaign in campaigns -->
+
+
+    </div>
+    <!-- CAMPAIGNS CONTAINER -->
+
+
+<!-- FORMS! -->
+
+    <!-- WEEK FORM CONTAINER -->
+    <div class="week-form-container form-main hide">
+
+      <div class="form-backdrop"></div>
+
+      <div class="modal-form">
+        <div class="form-title">Weekly Capacity
+          <span class="buttons">
+            <i class="material-icons week-save" title="Save">save</i>
+            <i class="material-icons week-cancel" title="Cancel & Close">cancel</i>
+          </span>
+        </div>
+        <form method="post" action="">
+          {% csrf_token %}
+
+
+          <div class="form">
+
+            <div class="custom-input">
+              <span class="label">WEEK</span>
+              <span class="input-no-edit"><input type="text" class="week-form-no" autocomplete="off" readonly></span>
+            </div>
+
+            <div class="custom-input">
+              <span class="label">OPS <br>CAPACITY &nbsp<i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0; display: inline;" title="Total no. of Ops capacity for the week of interest">help</i></span>
+              <span class="input"><input type="number" class="week-form-ops-hours" value="0.01" step='0.01' min="0.01" autocomplete="off" required></span>
+            </div>
+
+            <div class="custom-input">
+              <span class="label">ECLERX <br>CAPACITY &nbsp<i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0; display: inline;" title="Total no. of eClerx capacity for the week of interest">help</i></span>
+              <span class="input"><input type="number" class="week-form-agency-hours" value="0.01" step='0.01' min="0.01" autocomplete="off" required></span>
+            </div>
+
+            <div class="custom-input">
+              <span class="label">ANALYTICS <br>CAPACITY &nbsp<i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0; display: inline;" title="Total no. of Analytics capacity for the week of interest">help</i></span>
+              <span class="input"><input type="number" class="week-form-analytics-hours" value="0.01" step='0.01' min="0.01" autocomplete="off" required></span>
+            </div>
+
+            <div class="comment">
+              <span class="label">COMMENT
+                <div class="comment-details">Comment Date</div>
+              </span>
+              <!-- <i class="label-remove-comment material-icons">delete</i> -->
+
+              <!-- CHANGE: Check if person editing the comments is requester, if not, do not display -->
+              <span class="textarea"><textarea class="week-comment" rows="7"></textarea></span>
+            </div>
+
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </form>
+      </div>
+      <!-- TASK MODAL FORM -->
+
+    </div>
+    <!-- WEEK FORM CONTAINER -->
+
+        <!-- CAMPAIGN FORM CONTAINER -->
+        <div class="campaign-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Campaign
+              <span class="buttons">
+                <i class="material-icons campaign-save" title="Save">save</i>
+                <i class="material-icons campaign-delete" title="Delete Campaign & Related Tasks">delete</i>
+                <i class="material-icons campaign-cancel" title="Cancel & Close">cancel</i>
+              </span>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+
+              <div class="form">
+
+                <div class="custom-input">
+                  <span class="label">CAMPAIGN</span>
+                  <span class="input"><input type="text" class="campaign-form-name name" placeholder="Campaign Name" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">VERTICAL</span>
+                  <span class="selected campaign-form-vertical" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for vertical in verticals %}
+                    <li value="{{ vertical.id }}" class="select-list-hover select-list"><a href="#">{{ vertical.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">TYPE</span>
+                  <span class="selected campaign-form-type" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for type in types %}
+                    <li value="{{ type.id }}" class="select-list-hover select-list"><a href="#">{{ type.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">PROGRESS</span>
+                  <span class="selected campaign-form-progress" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for progress_ in progress %}
+                      <li value="{{ progress_.id }}" class="{{ progress_.progress_text }} select-list"><a href="#">{{ progress_.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">SELECT<br>DATE FOR</span>
+                  <span class="selected campaign-form-date-type" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    <li value="start" class="select-list date-dropdown"><a href="#">Start</a></li>
+                    <li value="end" class="select-list date-dropdown"><a href="#">End</a></li>
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+
+                <div class="custom-input">
+                  <span class="label">DATE VALUE</span>
+                  <!-- <input type="date" name="task-form-start" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input hide"><input type="text" class="campaign-form-start date datepicker" placeholder="Start Date" required /></span>
+                  <span class="input hide"><input type="text" class="campaign-form-end date datepicker" placeholder="End Date" required /></span>
+                </div>
+
+                <!-- <div class="custom-input"> -->
+                  <!-- <span class="label">END</span> -->
+                  <!-- <input type="date" name="task-form-end" value="2019-01-20" autocomplete="off" required> -->
+                <!-- </div> -->
+
+                <div class="custom-checkbox">
+                  <span class="label">COUNTRIES</span>
+                  <div class="custom-checkbox-list">
+                    {% for country in countries %}
+                      <span class="campaign-form-countries" value="{{ country.name }}">{{ country.name }}</span>
+                      <!-- <span class="checkbox-container">
+                        <input type="checkbox" class="campaign-form-countries" value="{{ country.name }}" required>{{ country.name }}
+                      </span> -->
+                    {% endfor %}
+                  </div>
+                </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- CAMPAIGN FORM CONTAINER -->
+
+
+        <!-- CAMPAIGN INFO FORM CONTAINER -->
+        <div class="campaign-info-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Campaign Background
+              <div class="buttons">
+                <i class="material-icons campaign-info-save" title="Save">save</i>
+                <i class="material-icons campaign-info-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form">
+
+                <div class="custom-input">
+                  <span class="label">PHASE</span>
+                  <span class="input"><input type="number" class="campaign-form-phase" step=1 value="1" min="1" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">COMPLEXITY</span>
+                  <span class="selected campaign-form-complexity" value="0"><i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    <li value="1" class="select-list-hover select-list"><a href="#">Low</a></li>
+                    <li value="2" class="select-list-hover select-list"><a href="#">Mid</a></li>
+                    <li value="3" class="select-list-hover select-list"><a href="#">High</a></li>
+                  </ul>
+                </div>
+
+                <div class="custom-checkbox">
+                  <span class="label">PLATFORM</span>
+                  <div class="custom-checkbox-list">
+                    {% for platform in platforms %}
+                      <span class="campaign-form-platform" value="{{ platform.name }}">{{ platform.name }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">LCM OWNER</span>
+                  <span class="selected campaign-form-lcm-owner" value="0"><i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for owner in owner_lcm %}
+                    <li value="{{ owner.id }}" class="select-list-hover select-list"><a href="#">{{ owner.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">OPS OWNER</span>
+                  <span class="selected campaign-form-ops-owner" value="0"><i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for owner in owner_ops %}
+                    <li value="{{ owner.id }}" class="select-list-hover select-list"><a href="#">{{ owner.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">ANALYTICS OWNER</span>
+                  <span class="selected campaign-form-analytics-owner" value="0"><i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for owner in owner_analytics %}
+                    <li value="{{ owner.id }}" class="select-list-hover select-list"><a href="#">{{ owner.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- CAMPAIGN INFO FORM CONTAINER -->
+
+        <!-- CAMPAIGN CAPACITY FORM CONTAINER -->
+        <div class="campaign-capacity-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Campaign Resource Utilization
+              <div class="buttons">
+                <i class="material-icons campaign-capacity-save" title="Save">save</i>
+                <i class="material-icons campaign-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form">
+
+                <div class="custom-input">
+                  <span class="label">OPS <br>HOURS &nbsp<i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0; display: inline;" title="Total no. of Ops manhours required for this campaign.">help</i></span>
+                  <span class="input"><input type="number" class="campaign-form-ops-hours" value="0.01" step='0.01' min="0.01" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">ECLERX <br>HOURS &nbsp<i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0; display: inline;" title="Total no. of eClerx manhours required for this campaign.">help</i></span>
+                  <span class="input"><input type="number" class="campaign-form-agency-hours" value="0.01" step='0.01' min="0.01" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">ANALYTICS <br>HOURS &nbsp<i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0; display: inline;" title="Total no. of analytics manhours required for this campaign.">help</i></span>
+                  <span class="input"><input type="number" class="campaign-form-analytics-hours" value="0.01" step='0.01' min="0.01" autocomplete="off" required></span>
+                </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- CAMPAIGN CAPACITY FORM CONTAINER -->
+
+
+        <!-- CAMPAIGN DETAILS FORM CONTAINER - QUANTIFIERS -->
+        <div class="campaign-quantifiers-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Campaign Quantifiers
+              <div class="buttons">
+                <i class="material-icons campaign-quantifiers-save" title="Save">save</i>
+                <i class="material-icons campaign-quantifiers-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form">
+
+                <div class="custom-input">
+                  <span class="label"># CHANNELS</span>
+                  <span class="input"><input type="number" class="campaign-form-no-channels" step=1 pattern="\d*" value="1" min="1" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label"># COMMS</span>
+                  <span class="input"><input type="number" class="campaign-form-no-comms" step=1 pattern="\d*" value="1" min="1" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label"># LANGUAGES</span>
+                  <span class="input"><input type="number" class="campaign-form-no-languages" step=1 pattern="\d*" value="1" min="1" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label"># DYNAMIC FIELDS</span>
+                  <span class="input"><input type="number" class="campaign-form-no-dynamic" step=1 pattern="\d*" value="1" min="1" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label"># NEW QUERY/ATTRS</span>
+                  <span class="input"><input type="number" class="campaign-form-no-quer-attr" step=1 pattern="\d*" value="1" min="1" autocomplete="off" required></span>
+                </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- CAMPAIGN DETAILS FORM CONTAINER - QUANTIFIERS -->
+
+
+        <!-- TASK FORM CONTAINER -->
+        <div class="task-form-container form-main hide" value="0"> <!-- Default MUST BE ZERO! -->
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Task
+              <div class="buttons">
+                <i class="material-icons task-save" title="Save">save</i>
+                <i class="material-icons archive" title="Archive">archive</i>
+                <i class="material-icons task-delete" title="Delete Task & Related Task Versions">delete</i>
+                <i class="material-icons task-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form latest">
+
+                <div class="custom-input">
+                  <span class="label">TASK</span>
+                  <span class="input"><input class="task-form-name name" type="text" name="task-form-name" value="" placeholder="Task Name" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">CATEGORY</span>
+                  <span class="selected task-form-category" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for category in categories %}
+                      <li value="{{ category.id }}" class="select-list"><a href="#">{{ category.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">PROGRESS</span>
+                  <span class="selected task-form-progress" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for progress_ in progress %}
+                      <li value="{{ progress_.id }}" class="{{ progress_.progress_text }} select-list"><a href="#">{{ progress_.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">START</span>
+                  <!-- <input type="date" name="task-form-start" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input"><input type="text" class="task-form-start date datepicker" required /></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">END</span>
+                  <!-- <input type="date" name="task-form-end" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input"><input type="text" class="task-form-end date datepicker" required /></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">OWNER</span>
+                  <span class="selected task-form-owner" value="0"><i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for owner in owners %}
+                    <li value="{{ owner.id }}" class="select-list"><a href="#">{{ owner.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+                <!-- <div class="custom-dropdown">
+                  <span class="label">DEPENDENCY<i class="material-icons" style="font-size: 1em; color: #48C77A; line-height:0; display: inline;" title="Which prior task would affect the dates on this task. If there are > 1, select the task with the latest date.">help</i></span>
+                  <span class="selected task-form-dependency" value="1">Task A</span><i class="material-icons">arrow_drop_down</i>
+                  <ul class="custom-dropdown-list hide">
+                    {% for dependency in task.tasks_dependencies.all %}
+                      <li value="{{ dependency.id }}" class="select-list-hover select-list"><a href="#">{{ dependency.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                </div> -->
+
+
+                <!-- <span class="task-form-dependency label" title="Which prior task would affect the dates on this task. If there are > 1, select the task with the latest date.">DEPENDENCY</span> -->
+                <!-- <label for="task-form-dependency">DEPENDENCY</label> -->
+                <!-- <input type="text" name="task-form-dependency" autocomplete="off" value="Task "/> -->
+
+              </div>
+              <!-- TASK FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- TASK FORM CONTAINER -->
+
+
+        <!-- TASK ADJUST FORM CONTAINER -->
+        <div class="task-adjust-form-container form-main hide" value="0"> <!-- Default MUST BE ZERO! -->
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Task
+              <p class="form-notes">
+                Changes in dates here will shift the: (1) Start & end dates of all subsequent tasks relative to the end date of this task. (2) End date of this task relative to it's start date.
+              </p>
+              <div class="buttons">
+                <i class="material-icons task-adjust-save" title="Save">save</i>
+                <i class="material-icons archive" title="Archive">archive</i>
+                <!-- <i class="material-icons task-adjust-delete" title="Delete Task & Related Task Versions">delete</i> -->
+                <i class="material-icons task-adjust-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form latest">
+
+                <div class="custom-input">
+                  <span class="label">TASK</span>
+                  <span class="input"><input class="task-form-name name" type="text" name="task-form-name" value="" placeholder="Task Name" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">CATEGORY</span>
+                  <span class="selected task-form-category" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for category in categories %}
+                      <li value="{{ category.id }}" class="select-list"><a href="#">{{ category.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">PROGRESS</span>
+                  <span class="selected task-form-progress" value="0"><i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for progress_ in progress %}
+                      <li value="{{ progress_.id }}" class="{{ progress_.progress_text }} select-list"><a href="#">{{ progress_.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">START</span>
+                  <!-- <input type="date" name="task-form-start" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input"><input type="text" class="task-form-start date datepicker" required /></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">END</span>
+                  <!-- <input type="date" name="task-form-end" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input"><input type="text" class="task-form-end date datepicker" required /></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">OWNER</span>
+                  <span class="selected task-form-owner" value="0"><i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                  {% for owner in owners %}
+                    <li value="{{ owner.id }}" class="select-list"><a href="#">{{ owner.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </div>
+
+                <!-- <div class="custom-dropdown">
+                  <span class="label">DEPENDENCY<i class="material-icons" style="font-size: 1em; color: #48C77A; line-height:0; display: inline;" title="Which prior task would affect the dates on this task. If there are > 1, select the task with the latest date.">help</i></span>
+                  <span class="selected task-form-dependency" value="1">Task A</span><i class="material-icons">arrow_drop_down</i>
+                  <ul class="custom-dropdown-list hide">
+                    {% for dependency in task.tasks_dependencies.all %}
+                      <li value="{{ dependency.id }}" class="select-list-hover select-list"><a href="#">{{ dependency.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                </div> -->
+
+
+                <!-- <span class="task-form-dependency label" title="Which prior task would affect the dates on this task. If there are > 1, select the task with the latest date.">DEPENDENCY</span> -->
+                <!-- <label for="task-form-dependency">DEPENDENCY</label> -->
+                <!-- <input type="text" name="task-form-dependency" autocomplete="off" value="Task "/> -->
+
+              </div>
+              <!-- TASK FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- TASK ADJUST FORM CONTAINER -->
+
+
+        <!-- COMMENT FORM CONTAINER -->
+        <div class="comment-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Comment
+              <div class="buttons">
+                <i class="material-icons comment-save" title="Save">save</i>
+                <i class="material-icons comment-delete" title="Delete Comments">delete</i>
+                <i class="material-icons comment-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form">
+
+                <div class="comment">
+                  <span class="comment-commenter">Commenter</span>
+                  <span class="comment-details">Comment Date</span>
+                  <span class="textarea"><textarea class="comment-text" rows="7">NEW COMMENT</textarea></span>
+                </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- COMMENT FORM CONTAINER -->
+
+
+
+        <!-- LINK FORM CONTAINER: MAIN -->
+        <div class="link-form-container-main form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Link
+              <div class="buttons">
+                <i class="material-icons link-save-main" title="Save">save</i>
+                <i class="material-icons link-cancel-main" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form">
+
+                <div class="custom-input link">
+                  <span class="label">LINK
+                  </span>
+                  <span class="input"><input type="text" class="task-link" placeholder="Please include full link with 'https://'" type="text" autocomplete="off" required></span>
+                </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- LINK FORM CONTAINER: MAIN -->
+
+        <!-- LINK FORM CONTAINER -->
+        <div class="link-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Link
+              <div class="buttons">
+                <i class="material-icons link-save" title="Save">save</i>
+                <i class="material-icons link-delete" title="Delete Comments">delete</i>
+                <i class="material-icons link-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form">
+
+                <div class="link">
+                  <div class="custom-input">
+                    <span class="label name">LINK NAME &nbsp
+                      <i class="material-icons" style="font-size: 1em; color: #CADADA; line-height:0;" title="Name to describe your link. Max chars: 50.">help</i>
+                    </span>
+                    <span class="input"><input type="text" class="task-link-name" size="5" autocomplete="off" maxlength="50" required></span>
+                  </div>
+
+                  <div class="custom-input">
+                    <span class="label">LINK</span>
+                    <span class="input"><input type="text" class="task-link" placeholder="Please include full link with 'https://'" type="text" autocomplete="off" required></span>
+                  </div>
+              </div>
+
+              </div>
+              <!-- TASK MODAL FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- LINK FORM CONTAINER -->
+
+
+
+
+        <!-- TASK VERSION FORM CONTAINER -->
+        <div class="task-version-form-container form-main hide">
+
+          <div class="form-backdrop"></div>
+
+          <div class="modal-form">
+            <div class="form-title">Task Version
+              <div class="buttons">
+                <i class="material-icons task-version-save" title="Save">save</i>
+                <i class="material-icons task-version-delete" title="Delete Task Version">delete</i>
+                <i class="material-icons task-cancel" title="Cancel & Close">cancel</i>
+              </div>
+            </div>
+            <form method="post" action="">
+              {% csrf_token %}
+
+              <div class="form version">
+
+                <div class="custom-input">
+                  <span class="label">TASK VERSION</span>
+                  <span class="input"><input class="task-form-name name" type="text" name="task-form-name" value="" placeholder="Task version name" autocomplete="off" required></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">PROGRESS</span>
+                  <span class="selected task-form-progress" value="">Select<i class="material-icons arrow">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for progress_ in progress %}
+                      <li value="{{ progress_.id }}" class="{{ progress_.progress_text }} select-list"><a href="#">{{ progress_.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  <!-- <input type="text" name="task-form-progress" value="On Track" autocomplete="off" required> -->
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">START</span>
+                  <!-- <input type="date" name="task-form-start" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input"><input type="text" class="task-form-start date datepicker" value="Select" required /></span>
+                </div>
+
+                <div class="custom-input">
+                  <span class="label">END</span>
+                  <!-- <input type="date" name="task-form-end" value="2019-01-20" autocomplete="off" required> -->
+                  <span class="input"><input type="text" class="task-form-end date datepicker" value="Select" required /></span>
+                </div>
+
+                <div class="custom-dropdown">
+                  <span class="label">OWNER</span>
+                  <span class="selected task-form-owner">Select<i class="material-icons">arrow_drop_down</i></span>
+                  <ul class="custom-dropdown-list hide">
+                    {% for owner in owners %}
+                    <li value="{{ owner.id }}" class="select-list-hover select-list"><a href="#">{{ owner.name }}</a></li>
+                    {% endfor %}
+                  </ul>
+                </div>
+
+              </div>
+              <!-- TASK FORM -->
+
+            </form>
+          </div>
+          <!-- TASK MODAL FORM -->
+
+        </div>
+        <!-- TASK VERSION FORM CONTAINER -->
+
+      </div> <!-- TIMELINES -->
+
+  </body>
+</html>

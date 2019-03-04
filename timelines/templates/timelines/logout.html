@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>CRM Timelines Logout</title>
+
+    <style>
+
+      /* @import url('https://fonts.googleapis.com/css?family=Open+Sans'); */
+      @import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900');
+      body, html {
+        font-family: "Roboto", sans-serif;
+        height: 100%;
+        background-image: linear-gradient(180deg, #7CD8CE, #EDF5E2);
+      }
+
+      a {
+        color: #FFF;
+        font-size: 0.85em;
+        font-weight: 300;
+      }
+
+      div {
+        padding: 2%;
+      }
+
+    </style>
+
+  </head>
+  <body>
+
+    <div>
+
+      <h2>You're Logged Out.</h2>
+      <a href="{% url 'login' %}">Login again</a>
+
+    </div>
+
+  </body>
+</html>

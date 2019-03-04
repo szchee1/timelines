@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>CRM Timelines Login</title>
+
+    <script>
+
+    </script>
+
+    <style>
+
+      /* @import url('https://fonts.googleapis.com/css?family=Open+Sans'); */
+      @import url('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900');
+      body, html {
+        font-family: "Roboto", sans-serif;
+        height: 100%;
+        background-image: linear-gradient(180deg, #7CD8CE, #EDF5E2);
+      }
+
+      div {
+        background-color: #FFF;
+        border-radius: 12px;
+        padding: 2%;
+        width: 25vw;
+        height: 70%;
+        /* height: 30vh; */
+        position: fixed;
+        top: 10vh;
+        right: 10vw;
+        box-shadow: 10px 10px 20px 0px rgba(25, 99, 121, 0.1);
+      }
+
+      form {
+        height: 100%;
+        position: relative;
+      }
+
+      label {
+        font-size: 0.75em;
+        position: absolute;
+        margin-top: 2%;
+        margin-left: 3%;
+        font-weight: 500;
+        color: #48C77A;
+      }
+
+      input {
+        border: none;
+        background-color: #F7F7F7; /* LIGHT GREY */
+        padding: 2% 2% 2% 23%;
+        margin: 1% auto;
+        border-radius: 5px;
+        display: block;
+        font-size: 0.85em;
+        font-weight: 300;
+        width: 75%;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus,
+      button:focus {
+          outline: none;
+      }
+
+      button {
+        background-color: #48C77A;
+        color: #FFF;
+        border: none;
+        border-radius: 3px;
+        padding: 1.5% 3%;
+        margin: 0;
+        position: absolute;
+        right: 5%;
+        font-size: 1em;
+        font-weight: 100;
+      }
+
+    </style>
+
+  </head>
+  <body>
+
+    <div>
+
+    <h2>CRM Timelines Login</h2>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Login</button>
+    </form>
+
+    </div>
+
+
+  </body>
+</html>
