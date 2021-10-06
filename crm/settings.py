@@ -153,6 +153,7 @@ STATICFILES_DIRS = (
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # https://devcenter.heroku.com/articles/django-app-configuration
+# https://stackoverflow.com/questions/57283470/django-pip-install-django-herokupsycopg2-error-is-blocking-deployment-to-her
 django_heroku.settings(locals())
 
 
